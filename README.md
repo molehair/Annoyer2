@@ -1,7 +1,9 @@
 # Annoyer2
 
-dart, flutter
+flutter
+- scheduled job
+- local notification
 
 firebase
-
-docker
+- auth
+- firestore
