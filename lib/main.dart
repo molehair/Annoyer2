@@ -1,9 +1,9 @@
+import 'package:annoyer2/pages/login.dart';
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 // local noti
@@ -38,24 +38,6 @@ void selectNotification(String? payload) async {
   //   context,
   //   MaterialPageRoute<void>(builder: (context) => SecondScreen(payload)),
   // );
-}
-
-Future<UserCredential> signInWithGoogle() async {
-  // Trigger the authentication flow
-  final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-  // Obtain the auth details from the request
-  final GoogleSignInAuthentication? googleAuth =
-      await googleUser?.authentication;
-
-  // Create a new credential
-  final credential = GoogleAuthProvider.credential(
-    accessToken: googleAuth?.accessToken,
-    idToken: googleAuth?.idToken,
-  );
-
-  // Once signed in, return the UserCredential
-  return await FirebaseAuth.instance.signInWithCredential(credential);
 }
 
 void main() async {
@@ -143,7 +125,8 @@ class _LoaderState extends State<Loader> {
 
         // Once complete, show your application
         if (snapshot.connectionState == ConnectionState.done) {
-          return const MyHomePage(title: 'Flutter Demo Home Page');
+          return const Login();
+          // return const MyHomePage(title: 'Flutter Demo Home Page');
         }
 
         // Otherwise, show something whilst waiting for initialization to complete
@@ -187,8 +170,6 @@ class _MyHomePageState extends State<MyHomePage> {
   void _incrementCounter() {
     // Workmanager().registerOneOffTask("1", "simpleTask",
     //     initialDelay: Duration(seconds: 3)); //Android only (see below)
-
-    // signInWithGoogle().then((value) => debugPrint('CRED: $value'));
 
     CollectionReference users = FirebaseFirestore.instance.collection('users');
     users
