@@ -1,19 +1,17 @@
 // training system
 // It makes use of notification IDs ranged from 0 to (numAlarmsPerDay*7).
 
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/pages/test_page.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:collection/collection.dart';
 
-import '../notification_manager.dart';
 import 'database/dictionary.dart';
 import 'database/training_data.dart';
 import 'pages/practice_page.dart';
@@ -38,17 +36,25 @@ const fieldKey = 'key'; // for notification system
 const fieldDailyIndex = 'dailyIndex';
 
 class TrainingSystem {
-  // notification constants
-  static const String _notificationKey = 'training';
+  static final NotificationChannel notificationChannel = NotificationChannel(
+    channelKey: 'training',
+    channelName: 'Training',
+    channelDescription: 'Notification channel for training',
+    // defaultColor: Color(0xFF9D50DD),
+    // ledColor: Colors.white,
+  );
 
+  /// Must be called after notification manager is initialized.
   static initialization() async {
-    await NotificationManager.initialization();
-
-    // enroll notification callback
-    NotificationManager.enrollCallback(
-      key: _notificationKey,
-      callback: _onSelectNotification,
-    );
+    // listen to tapping a notification
+    AwesomeNotifications()
+        .actionStream
+        .listen((ReceivedNotification receivedNotification) {
+      debugPrint('listen: payload=${receivedNotification.payload}');
+      if (receivedNotification.channelKey == notificationChannel.channelKey) {
+        _onSelectNotification(receivedNotification.payload);
+      }
+    });
 
     // enroll training data callback
     Box<TrainingData> box =
@@ -88,93 +94,57 @@ class TrainingSystem {
     final String practiceBody = AppLocalizations.of(context)!.practiceNotifier;
     final String testBody = AppLocalizations.of(context)!.testNotifier;
 
-    // set the first alarm datetime
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    final tz.TZDateTime first = tz.TZDateTime.local(
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
-
     // Set the practice and test alarms
     // the last one is the only test alarm
     final List<Future> futures = [];
+    final String localTimeZone =
+        await AwesomeNotifications().getLocalTimeZoneIdentifier();
+    int hour = time.hour;
+    int minute = time.minute;
     for (int dailyIndex = 0; dailyIndex < numAlarmsPerDay; dailyIndex++) {
       // compute notification id
       int id = _computeNotificationId(weekday, dailyIndex);
 
-      // compute datetime
-      tz.TZDateTime scheduledDate =
-          first.add(Duration(minutes: notiInterval * dailyIndex));
-      if (scheduledDate.isBefore(now)) {
-        // If the alarm time already passed, then start from the next week
-        scheduledDate.add(const Duration(days: 7));
-      }
-
-      futures.add(setSingleAlarm(
-        id: id,
-        scheduledDate: scheduledDate,
-        body: (dailyIndex + 1 < numAlarmsPerDay) ? practiceBody : testBody,
-        title: title,
-        payload: jsonEncode({
-          fieldKey: _notificationKey,
-          fieldDailyIndex: dailyIndex,
-        }),
+      // schedule the alarm
+      futures.add(AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: id,
+          channelKey: notificationChannel.channelKey!,
+          title: title,
+          body: (dailyIndex + 1 < numAlarmsPerDay) ? practiceBody : testBody,
+          payload: {
+            fieldDailyIndex: dailyIndex.toString(),
+          },
+          groupKey: _getGroupKey(weekday),
+          // notificationLayout: NotificationLayout.BigPicture,
+          // bigPicture: 'asset://assets/images/melted-clock.png',
+        ),
+        schedule: NotificationCalendar(
+          weekday: weekday == 0 ? 7 : weekday, // change 0(=Sun) to 7
+          hour: hour,
+          minute: minute,
+          second: 0,
+          timeZone: localTimeZone,
+          repeats: true,
+        ),
       ));
+
+      // iterate the datetime (+notiInterval minutes on (minute,hour,weekday))
+      // considering overflows
+      minute += notiInterval;
+      hour += (minute / 60).floor();
+      weekday = (weekday + (hour / 24).floor()) % 7;
+      hour = hour % 24;
+      minute = minute % 60;
     }
 
     await Future.wait(futures);
-  }
-
-  static Future<void> setSingleAlarm({
-    required int id,
-    required tz.TZDateTime scheduledDate,
-    String? title,
-    String? body,
-    String? payload,
-  }) async {
-    // notification handlers
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'your channel id',
-      'Training alarm',
-      channelDescription: 'The alarm for daily training',
-      importance: Importance.high,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-        NotificationManager.flutterLocalNotificationsPlugin;
-
-    debugPrint(scheduledDate.toString());
-    return flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      platformChannelSpecifics,
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: payload,
-    );
   }
 
   /// cancel alarms on the given weekday
   static Future<void> cancelAlarm(int weekday) async {
-    List<Future<void>> futures = [];
-    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-        NotificationManager.flutterLocalNotificationsPlugin;
-    for (int dailyIndex = 0; dailyIndex < numAlarmsPerDay; dailyIndex++) {
-      int id = _computeNotificationId(weekday, dailyIndex);
-      futures.add(flutterLocalNotificationsPlugin.cancel(id));
-    }
-    await Future.wait(futures);
+    return AwesomeNotifications()
+        .cancelSchedulesByGroupKey(_getGroupKey(weekday));
   }
 
   /// Compute the notification id
@@ -182,17 +152,33 @@ class TrainingSystem {
     return weekday * numAlarmsPerDay + dailyIndex;
   }
 
-  /// when the user taps the notification
-  static Widget? _onSelectNotification(final Map<String, dynamic> data) {
-    debugPrint('onSelectNOtification in training: $data');
+  /// Get the group key for scheduling
+  static String _getGroupKey(int weekday) {
+    return '${notificationChannel.channelKey}_$weekday';
+  }
 
+  /// when the user taps the notification
+  static void _onSelectNotification(Map<String, String>? payload) {
     // last alarm?
-    if (data[fieldDailyIndex] == numAlarmsPerDay) {
-      debugPrint('Creating DailyTest instance..');
-      return TestPage();
-    } else {
-      debugPrint('Creating Practice instance..');
-      return PracticePage(dailyIndex: data[fieldDailyIndex]);
+    if (payload != null) {
+      String? dailyIndexString = payload[fieldDailyIndex];
+      if (dailyIndexString != null) {
+        int dailyIndex = int.parse(dailyIndexString);
+
+        BuildContext context = Global.navigatorKey.currentContext!;
+        if (dailyIndex == numAlarmsPerDay) {
+          debugPrint('Creating DailyTest instance..');
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => TestPage()));
+        } else {
+          debugPrint('Creating Practice instance..');
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => PracticePage(
+              dailyIndex: dailyIndex,
+            ),
+          ));
+        }
+      }
     }
   }
 

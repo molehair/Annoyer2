@@ -28,9 +28,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsState extends State<SettingsPage>
     with AutomaticKeepAliveClientMixin {
   Settings _settings = Settings();
-  bool _backupInProgress = false;
-  bool _restoreInProgress = false;
-  bool _updatingAlarm = false;
 
   _loadSettings() async {
     Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
@@ -81,94 +78,92 @@ class _SettingsState extends State<SettingsPage>
       Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
       await box.put(Settings.key, newSettings);
 
-      // // update the state
-      // setState(() {
-      //   _settings = newSettings;
-      // });
+      // update the state
+      setState(() {
+        _settings = newSettings;
+      });
     } on Exception catch (e) {
       debugPrint(e.toString());
     } finally {}
   }
 
   _pickAlarmTime(BuildContext context) async {
-    // // get alarm time
-    // TimeOfDay? alarmTimeSelected = await showTimePicker(
-    //   initialTime: TimeOfDay(
-    //     hour: _settings.alarmTimeHour,
-    //     minute: _settings.alarmTimeMinute,
-    //   ),
-    //   context: context,
-    // );
+    // get alarm time
+    TimeOfDay? alarmTimeSelected = await showTimePicker(
+      initialTime: TimeOfDay(
+        hour: _settings.alarmTimeHour,
+        minute: _settings.alarmTimeMinute,
+      ),
+      context: context,
+    );
 
-    // // Did user chose the time?
-    // if (alarmTimeSelected != null) {
-    //   try {
-    //     // set the new settings
-    //     Settings newSettings = Settings.from(_settings);
-    //     newSettings.alarmTimeHour = alarmTimeSelected.hour;
-    //     newSettings.alarmTimeMinute = alarmTimeSelected.minute;
+    // Did user chose the time?
+    if (alarmTimeSelected != null) {
+      try {
+        // set the new settings
+        Settings newSettings = Settings.from(_settings);
+        newSettings.alarmTimeHour = alarmTimeSelected.hour;
+        newSettings.alarmTimeMinute = alarmTimeSelected.minute;
 
-    //     // reschedule
-    //     if (_settings.alarmEnabled) {
-    //       await TrainingSystem.setSchedule(
-    //         alarmTimeSelected,
-    //         newSettings.alarmWeekdays,
-    //       );
-    //     }
+        // reschedule
+        if (_settings.alarmEnabled) {
+          for (int weekday = 0; weekday < 7; weekday++) {
+            if (newSettings.alarmWeekdays[weekday]) {
+              await TrainingSystem.setAlarm(alarmTimeSelected, weekday);
+            }
+          }
+        }
 
-    //     // save to the local storage
-    //     Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-    //     await box.put(Settings.key, newSettings);
+        // save to the local storage
+        Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
+        await box.put(Settings.key, newSettings);
 
-    //     // update state
-    //     setState(() {
-    //       _settings = newSettings;
-    //     });
-    //   } on Exception catch (e) {
-    //     debugPrint(e.toString());
-    //   }
-    // }
+        // update state
+        setState(() {
+          _settings = newSettings;
+        });
+      } on Exception catch (e) {
+        debugPrint(e.toString());
+      }
+    }
   }
 
   _toggleWeekday(BuildContext context, int weekday) async {
-    // try {
-    //   // set the new settings
-    //   Settings newSettings = Settings.from(_settings);
-    //   newSettings.alarmWeekdays[weekday] = !newSettings.alarmWeekdays[weekday];
+    try {
+      // set the new settings
+      Settings newSettings = Settings.from(_settings);
+      newSettings.alarmWeekdays[weekday] = !newSettings.alarmWeekdays[weekday];
 
-    //   // reschedule
-    //   debugPrint('${newSettings.alarmWeekdays.runtimeType}');
-    //   if (newSettings.alarmEnabled) {
-    //     debugPrint('2');
-    //     await TrainingSystem.setSchedule(
-    //       TimeOfDay(
-    //         hour: newSettings.alarmTimeHour,
-    //         minute: newSettings.alarmTimeMinute,
-    //       ),
-    //       newSettings.alarmWeekdays,
-    //     );
-    //   }
+      debugPrint('${newSettings.alarmWeekdays.runtimeType}');
+      if (newSettings.alarmEnabled) {
+        // reschedule
+        await TrainingSystem.setAlarm(
+          TimeOfDay(
+            hour: newSettings.alarmTimeHour,
+            minute: newSettings.alarmTimeMinute,
+          ),
+          weekday,
+        );
+      } else {
+        // cancel
+        await TrainingSystem.cancelAlarm(weekday);
+      }
 
-    //   // save to the local storage
-    //   Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-    //   await box.put(Settings.key, newSettings);
+      // save to the local storage
+      Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
+      await box.put(Settings.key, newSettings);
 
-    //   // update state
-    //   setState(() {
-    //     _settings = newSettings;
-    //   });
-    // } on Exception catch (e) {
-    //   debugPrint(e.toString());
-    // }
+      // update state
+      setState(() {
+        _settings = newSettings;
+      });
+    } on Exception catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   void _backup() async {
     try {
-      // show in-progress indicator
-      setState(() {
-        _backupInProgress = true;
-      });
-
       // make a backup list
       final Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
       final List backup = [];
@@ -195,11 +190,6 @@ class _SettingsState extends State<SettingsPage>
       }
     } on Exception catch (e) {
       debugPrint(e.toString());
-    } finally {
-      // hide in-progress indicator
-      setState(() {
-        _backupInProgress = false;
-      });
     }
   }
 
@@ -213,11 +203,6 @@ class _SettingsState extends State<SettingsPage>
       //-- User selected a file --//
 
       try {
-        // show in-progress indicator
-        setState(() {
-          _restoreInProgress = true;
-        });
-
         // read from file
         final File file = File(result.files.single.path!);
         final String backupJson = await file.readAsString();
@@ -238,14 +223,7 @@ class _SettingsState extends State<SettingsPage>
         await box.addAll(words);
       } on Exception catch (e) {
         debugPrint(e.toString());
-      } finally {
-        // hide in-progress indicator
-        setState(() {
-          _restoreInProgress = false;
-        });
       }
-    } else {
-      //-- User canceled the picker --//
     }
   }
 
@@ -261,17 +239,7 @@ class _SettingsState extends State<SettingsPage>
             dense: true,
             trailing: Switch(
               value: _settings.alarmEnabled,
-              onChanged: (value) async {
-                // show in-progress indicator
-                setState(() {
-                  _updatingAlarm = true;
-                });
-                await _alarmSwitch(value);
-                // // hide in-progress indicator
-                // setState(() {
-                //   _updatingAlarm = false;
-                // });
-              },
+              onChanged: _alarmSwitch,
             ),
           ),
           Card(
@@ -291,44 +259,38 @@ class _SettingsState extends State<SettingsPage>
             ),
           ),
           Card(
-            child: Stack(alignment: AlignmentDirectional.center, children: [
-              ListTile(
-                leading: const Icon(Icons.event_outlined),
-                title: Wrap(
-                  children: [
-                    AppLocalizations.of(context)!.sun,
-                    AppLocalizations.of(context)!.mon,
-                    AppLocalizations.of(context)!.tue,
-                    AppLocalizations.of(context)!.wed,
-                    AppLocalizations.of(context)!.thu,
-                    AppLocalizations.of(context)!.fri,
-                    AppLocalizations.of(context)!.sat,
-                  ].asMap().entries.map((entry) {
-                    return TextButton(
-                      onPressed: _settings.alarmEnabled
-                          ? () => _toggleWeekday(context, entry.key)
+            child: ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Wrap(
+                children: [
+                  AppLocalizations.of(context)!.sun,
+                  AppLocalizations.of(context)!.mon,
+                  AppLocalizations.of(context)!.tue,
+                  AppLocalizations.of(context)!.wed,
+                  AppLocalizations.of(context)!.thu,
+                  AppLocalizations.of(context)!.fri,
+                  AppLocalizations.of(context)!.sat,
+                ].asMap().entries.map((entry) {
+                  return TextButton(
+                    onPressed: _settings.alarmEnabled
+                        ? () => _toggleWeekday(context, entry.key)
+                        : null,
+                    child: Text(
+                      entry.value,
+                      style: _settings.alarmEnabled
+                          ? (TextStyle(
+                              color: _settings.alarmWeekdays[entry.key]
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey,
+                            ))
                           : null,
-                      child: Text(
-                        entry.value,
-                        style: _settings.alarmEnabled
-                            ? (TextStyle(
-                                color: _settings.alarmWeekdays[entry.key]
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey,
-                              ))
-                            : null,
-                      ),
-                    );
-                  }).toList(),
-                  alignment: WrapAlignment.center,
-                  spacing: 10.0,
-                ),
+                    ),
+                  );
+                }).toList(),
+                alignment: WrapAlignment.center,
+                spacing: 10.0,
               ),
-              Visibility(
-                visible: _updatingAlarm,
-                child: const CircularProgressIndicator(),
-              ),
-            ]),
+            ),
           ),
           // const ListTile(
           //   title: Text(
@@ -343,20 +305,10 @@ class _SettingsState extends State<SettingsPage>
             dense: true,
           ),
           Card(
-            child: Stack(
-              alignment: AlignmentDirectional.center,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.backup_outlined),
-                  title: Text(AppLocalizations.of(context)!.backup),
-                  onTap: _backup,
-                  enabled: !_backupInProgress,
-                ),
-                Visibility(
-                  visible: _backupInProgress,
-                  child: const CircularProgressIndicator(),
-                ),
-              ],
+            child: ListTile(
+              leading: const Icon(Icons.backup_outlined),
+              title: Text(AppLocalizations.of(context)!.backup),
+              onTap: _backup,
             ),
           ),
           Card(

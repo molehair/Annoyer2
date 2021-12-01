@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_native_timezone/flutter_native_timezone.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
-
 import 'database/database.dart';
 import 'global.dart';
 import 'notification_manager.dart';
@@ -21,35 +16,16 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  static NotificationAppLaunchDetails? notificationAppLaunchDetails;
-
   static var initialization = _init();
 
   static _init() async {
-    // timezone
-    tz.initializeTimeZones();
-    final String currentTimeZone =
-        await FlutterNativeTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(currentTimeZone));
+    // The initialization order must be maintained.
 
     // notification system
     await NotificationManager.initialization();
-    notificationAppLaunchDetails =
-        NotificationManager.notificationAppLaunchDetails;
 
     // database
     await DB.initialization();
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
-      // launch by tapping notification?
-      if (notificationAppLaunchDetails!.didNotificationLaunchApp) {
-        debugPrint(
-            'launch by notification. Payload: ${notificationAppLaunchDetails!.payload}');
-
-        // run callback
-        NotificationManager.onSelectNotification(
-            notificationAppLaunchDetails!.payload);
-      }
-    });
 
     // training system
     await TrainingSystem.initialization();

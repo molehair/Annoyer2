@@ -6,7 +6,6 @@ import 'package:annoyer/database/word.dart';
 import 'package:annoyer/training_system.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 class DebugPage extends StatelessWidget {
   const DebugPage({Key? key}) : super(key: key);
@@ -14,45 +13,48 @@ class DebugPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('debug')),
+      appBar: AppBar(title: const Text('debug')),
       body: ListView(
         children: <Widget>[
-          ListTile(
-            title: const Text('manual practice'),
-            onTap: () {
-              Random rng = Random();
-              TrainingSystem.setSingleAlarm(
-                id: 10000 + rng.nextInt(10000),
-                scheduledDate:
-                    tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
-                title: 'manual practice',
-                payload: jsonEncode(
-                  {
-                    fieldKey: 'training',
-                    fieldDailyIndex: rng.nextInt(10000),
-                  },
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('manual test'),
-            onTap: () {
-              Random rng = Random();
-              TrainingSystem.setSingleAlarm(
-                id: 10000 + rng.nextInt(10000),
-                scheduledDate:
-                    tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
-                title: 'manual test',
-                payload: jsonEncode(
-                  {
-                    fieldKey: 'training',
-                    fieldDailyIndex: numAlarmsPerDay,
-                  },
-                ),
-              );
-            },
-          ),
+          // ListTile(
+          //   title: const Text('manual practice'),
+          //   onTap: () {
+          //     Random rng = Random();
+          //     DateTime now = DateTime.now();
+          //     DateTime dt = now.add(Duration(minutes: 1));
+          //     TrainingSystem.setAlarm(TimeOfDay(hour: dt.hour, minute: dt.minute,), dt.weekday,);
+          //     .setSingleAlarm(
+          //       id: 10000 + rng.nextInt(10000),
+          //       scheduledDate:
+          //           tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
+          //       title: 'manual practice',
+          //       payload: jsonEncode(
+          //         {
+          //           fieldKey: 'training',
+          //           fieldDailyIndex: rng.nextInt(10000),
+          //         },
+          //       ),
+          //     );
+          //   },
+          // ),
+          // ListTile(
+          //   title: const Text('manual test'),
+          //   onTap: () {
+          //     Random rng = Random();
+          //     TrainingSystem.setSingleAlarm(
+          //       id: 10000 + rng.nextInt(10000),
+          //       scheduledDate:
+          //           tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
+          //       title: 'manual test',
+          //       payload: jsonEncode(
+          //         {
+          //           fieldKey: 'training',
+          //           fieldDailyIndex: numAlarmsPerDay,
+          //         },
+          //       ),
+          //     );
+          //   },
+          // ),
           ListTile(
             title: const Text('delete trainingData'),
             onTap: () {
