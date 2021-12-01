@@ -15,8 +15,6 @@ class PracticePage extends StatelessWidget {
       : loader = _load(dailyIndex),
         super(key: key);
 
-  static const routeName = '/practice';
-
   final int dailyIndex;
   final Future<List<Word>> loader;
 
