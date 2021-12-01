@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.annoyer2">
+    package="com.example.annoyer">
    <application
-        android:label="annoyer2"
+        android:label="annoyer"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

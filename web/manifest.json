@@ -1,6 +1,6 @@
 {
-    "name": "annoyer2",
-    "short_name": "annoyer2",
+    "name": "annoyer",
+    "short_name": "annoyer",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

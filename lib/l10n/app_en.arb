@@ -1,0 +1,39 @@
+{
+  "requiredField": "Please fill this field.",
+  "@requiredField": {
+    "description": "Mandatory fields in a form."
+  },
+  "word": "Word",
+  "name": "Name",
+  "definition": "Definition",
+  "example": "Example",
+  "mnemonic": "Mnemonic",
+  "level": "Level",
+  "newWord": "New",
+  "updateWord": "Update",
+  "sun": "Sun",
+  "mon": "Mon",
+  "tue": "Tue",
+  "wed": "Wed",
+  "thu": "Thu",
+  "fri": "Fri",
+  "sat": "Sat",
+  "alarm": "Alarm",
+  "annoyer": "Annoyer",
+  "practiceNotifier": "Bump yourself up!",
+  "testNotifier": "End of the day!",
+  "practice": "Practice",
+  "test": "Test",
+  "noWordToShow": "There is no word to show.",
+  "dictionary": "Dictionary",
+  "settings": "Settings",
+  "searchDefinition": "Search definition",
+  "@searchDefinition": {
+    "description": "the explanatory remark for the user to search a definition in the test page"
+  },
+  "notFound": "Not found",
+  "loading": "Loading",
+  "giveUp": "Give up",
+  "backup": "Backup",
+  "restore": "Restore"
+}
