@@ -324,8 +324,8 @@ class _SettingsState extends State<SettingsPage>
             child: ListTile(
               title: const Text('DEBUG'),
               onTap: () {
-                Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const DebugPage()));
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) => DebugPage()));
               },
             ),
           ),

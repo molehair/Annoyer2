@@ -2,13 +2,17 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:annoyer/database/dictionary.dart';
+import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/training_system.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class DebugPage extends StatelessWidget {
-  const DebugPage({Key? key}) : super(key: key);
+  DebugPage({Key? key}) : super(key: key);
+
+  final TextEditingController _dailyIndexController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -16,50 +20,55 @@ class DebugPage extends StatelessWidget {
       appBar: AppBar(title: const Text('debug')),
       body: ListView(
         children: <Widget>[
-          // ListTile(
-          //   title: const Text('manual practice'),
-          //   onTap: () {
-          //     Random rng = Random();
-          //     DateTime now = DateTime.now();
-          //     DateTime dt = now.add(Duration(minutes: 1));
-          //     TrainingSystem.setAlarm(TimeOfDay(hour: dt.hour, minute: dt.minute,), dt.weekday,);
-          //     .setSingleAlarm(
-          //       id: 10000 + rng.nextInt(10000),
-          //       scheduledDate:
-          //           tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
-          //       title: 'manual practice',
-          //       payload: jsonEncode(
-          //         {
-          //           fieldKey: 'training',
-          //           fieldDailyIndex: rng.nextInt(10000),
-          //         },
-          //       ),
-          //     );
-          //   },
-          // ),
-          // ListTile(
-          //   title: const Text('manual test'),
-          //   onTap: () {
-          //     Random rng = Random();
-          //     TrainingSystem.setSingleAlarm(
-          //       id: 10000 + rng.nextInt(10000),
-          //       scheduledDate:
-          //           tz.TZDateTime.now(tz.local).add(Duration(seconds: 1)),
-          //       title: 'manual test',
-          //       payload: jsonEncode(
-          //         {
-          //           fieldKey: 'training',
-          //           fieldDailyIndex: numAlarmsPerDay,
-          //         },
-          //       ),
-          //     );
-          //   },
-          // ),
+          const ListTile(
+            title: Text('training'),
+            dense: true,
+          ),
+          ListTile(
+            title: TextFormField(
+              decoration: const InputDecoration(labelText: 'dailyIndex'),
+              controller: _dailyIndexController,
+            ),
+          ),
+          ListTile(
+            title: const Text('fire training notification'),
+            onTap: () {
+              int dailyIndex = 0;
+              try {
+                dailyIndex = int.parse(_dailyIndexController.text);
+              } catch (e) {}
+
+              AwesomeNotifications().createNotification(
+                content: NotificationContent(
+                  id: 100000 + dailyIndex,
+                  channelKey: TrainingSystem.notificationChannel.channelKey!,
+                  title: 'debug training $dailyIndex',
+                  body: 'debug body',
+                  payload: {
+                    fieldDailyIndex: dailyIndex.toString(),
+                  },
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('debugPrint trainingData'),
+            onTap: () async {
+              TrainingData? trainingData =
+                  await TrainingSystem.loadTrainingWords();
+
+              debugPrint('trainingData: $trainingData');
+            },
+          ),
           ListTile(
             title: const Text('delete trainingData'),
             onTap: () {
               TrainingSystem.removeTrainingWords();
             },
+          ),
+          const ListTile(
+            title: Text('words'),
+            dense: true,
           ),
           ListTile(
             title: const Text('add bulk words'),
