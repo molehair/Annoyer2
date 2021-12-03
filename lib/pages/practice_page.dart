@@ -12,11 +12,11 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 class PracticePage extends StatelessWidget {
   PracticePage({Key? key, required this.dailyIndex})
-      : loader = _load(dailyIndex),
+      : _loader = _load(dailyIndex),
         super(key: key);
 
   final int dailyIndex;
-  final Future<List<Word>> loader;
+  final Future<List<Word>> _loader;
 
   /// select the words to show and return them as a list
   static Future<List<Word>> _load(int dailyIndex) async {
@@ -69,7 +69,7 @@ class PracticePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: loader,
+      future: _loader,
       builder: (context, snapshot) {
         // Check for errors
         if (snapshot.hasError) {
