@@ -39,9 +39,9 @@ class Question {
   /// Replace `term`(s) in `sentence` with `blank`
   ///
   /// If a term is a single word, then every occurrence is replaced.
-  /// Otherwise, only one occurrence is applied whose end-to-end distance is the shortest.
-  /// The end-to-end distance is (endIndex - beginIndex) of the term when the sentence
-  /// is split into words.
+  /// Otherwise, only one occurrence is applied whose end-to-end distance
+  /// is the shortest. The end-to-end distance is (endIndex - beginIndex) of
+  /// the term when the sentence is split into words.
   ///
   /// example 1
   ///   sentence = 'He pushed the door again and again.'
@@ -58,6 +58,10 @@ class Question {
   ///                The first one has the end-to-end distance 8-0=8.
   ///                The second one has the end-to-end distance 10-8=2.
   ///                Thus, the second occurrence was chosen.
+  ///
+  /// TODO: deal with past tenses
+  ///       e.g) name: turn the tables on
+  ///            ex: Wow, they really turned the tables on their opponents after the intermission.
   String _blankify(String sentence, String term, {String blank = _blank}) {
     // split by spaces
     final List<String> sentenceSplitted = sentence.split(' ');
@@ -75,7 +79,7 @@ class Question {
       termConverted.add(wordMap[wordEscaped]!);
     }
 
-    // convert example sentence
+    // convert example sentence into integer list
     final List<int> sentenceConverted = [];
     final List<int> sentenceIndices = [];
     for (int i = 0; i < sentenceSplitted.length; i++) {
