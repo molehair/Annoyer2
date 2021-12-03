@@ -70,7 +70,7 @@ class TrainingSystem {
         TrainingData trainingData = event.value;
 
         // check if it's not valid
-        if (DateTime.now().isBefore(trainingData.expiration) ||
+        if (trainingData.expiration.isBefore(DateTime.now()) ||
             trainingData.wordKeys.isEmpty) {
           // remove training data
           Box<TrainingData> box =
@@ -166,11 +166,13 @@ class TrainingSystem {
         int dailyIndex = int.parse(dailyIndexString);
 
         BuildContext context = Global.navigatorKey.currentContext!;
-        if (dailyIndex == numAlarmsPerDay) {
+        if (dailyIndex == numAlarmsPerDay - 1) {
+          //-- last alarm on a day --//
           debugPrint('Creating DailyTest instance..');
           Navigator.of(context)
               .push(MaterialPageRoute(builder: (context) => TestPage()));
         } else {
+          //-- non-last alarm on a day --//
           debugPrint('Creating Practice instance..');
           Navigator.of(context).push(MaterialPageRoute(
             builder: (context) => PracticePage(
