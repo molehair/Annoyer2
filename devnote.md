@@ -10,6 +10,8 @@
   - animation
   - search / filter words
   - multiple deletion
+  - offline dictionary
+    - https://github.com/wordset/wordset-dictionary
 
 - to check
   - switch between two accounts and see it doesn't load the other's dictionary.
