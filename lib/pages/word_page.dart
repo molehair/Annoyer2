@@ -108,6 +108,23 @@ class WordPage extends StatelessWidget {
     _exController.text = createMode ? '' : word!.ex;
     _mnemonicController.text = createMode ? '' : (word!.mnemonic ?? '');
 
+    List<Widget> buttons = [
+      FloatingActionButton(
+        onPressed: () => set(context),
+        child: const Icon(Icons.check),
+      ),
+    ];
+    if (!createMode) {
+      // add `delete` button
+      buttons.insert(
+        0,
+        FloatingActionButton(
+          onPressed: () => delete(context),
+          child: const Icon(Icons.delete),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
@@ -117,6 +134,7 @@ class WordPage extends StatelessWidget {
         child: Form(
           key: _formKey,
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
@@ -135,7 +153,6 @@ class WordPage extends StatelessWidget {
                 },
                 controller: _nameController,
               ),
-              const SizedBox(height: 24),
               TextFormField(
                 // TODO: allow multiple lines
                 decoration: InputDecoration(
@@ -153,7 +170,6 @@ class WordPage extends StatelessWidget {
                 },
                 controller: _defController,
               ),
-              const SizedBox(height: 24),
               TextFormField(
                 // TODO: allow multiple lines
                 decoration: InputDecoration(
@@ -171,7 +187,7 @@ class WordPage extends StatelessWidget {
                 },
                 controller: _exController,
               ),
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
               TextFormField(
                 // TODO: allow multiple lines
                 decoration: InputDecoration(
@@ -183,27 +199,14 @@ class WordPage extends StatelessWidget {
                 ),
                 controller: _mnemonicController,
               ),
+              Row(
+                children: buttons,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              ),
             ],
           ),
         ),
       ),
-      floatingActionButton: Row(
-        // TODO: arrange the positions
-        children: [
-          FloatingActionButton(
-            onPressed: () => delete(context),
-            child: const Icon(Icons.delete),
-            heroTag: null,
-          ),
-          FloatingActionButton(
-            onPressed: () => set(context),
-            child: const Icon(Icons.check),
-            heroTag: null,
-          ),
-        ],
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
