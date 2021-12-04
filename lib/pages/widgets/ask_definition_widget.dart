@@ -1,12 +1,12 @@
+import 'dart:math';
+
 import 'package:annoyer/database/dictionary.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/question.dart';
 import 'package:annoyer/training_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:just_the_tooltip/just_the_tooltip.dart';
 
 enum _Status {
   waiting,
@@ -14,22 +14,96 @@ enum _Status {
   wrong,
 }
 
-class AskDefinitionWidget extends StatefulWidget {
-  const AskDefinitionWidget({
+class AskDefinitionWidget extends StatelessWidget {
+  AskDefinitionWidget({
     Key? key,
     required this.question,
+  }) : super(key: key) {
+    initialization = _selectCandidates();
+  }
+
+  final Question question;
+  late final Future initialization;
+  static const int _numCandidates = 4; // the number of candidates(choices)
+  final List<Word> _candidates = [];
+
+  /// prepare multiple choices
+  Future<void> _selectCandidates() async {
+    // add the correct answer to the candidate list
+    _candidates.add(question.word);
+
+    // fill the rest
+    Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
+    int numWords = box.keys.length;
+    Random rng = Random();
+    for (int i = 0; i < _numCandidates - 1;) {
+      // choose a random word from dictionary
+      int r = rng.nextInt(numWords);
+      Word? word = box.getAt(r);
+
+      // check validity(need this code?)
+      if (word == null) {
+        continue;
+      }
+
+      // add to the list only if no duplicate
+      if (!_candidates.contains(word)) {
+        _candidates.add(word);
+        i++;
+      }
+    }
+
+    // shuffle
+    _candidates.shuffle();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: initialization,
+      builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          debugPrint(snapshot.error.toString());
+          return const Text('SomethingWentWrong();');
+        }
+
+        // Once complete, show your application
+        if (snapshot.connectionState == ConnectionState.done) {
+          // ordinary launch
+          return _AskDefinitionWidgetMain(
+            question: question,
+            candidates: _candidates,
+          );
+        }
+
+        return const Text('Loading...');
+      },
+    );
+  }
+}
+
+class _AskDefinitionWidgetMain extends StatefulWidget {
+  const _AskDefinitionWidgetMain({
+    Key? key,
+    required this.question,
+    required this.candidates,
   }) : super(key: key);
 
   final Question question;
+  final List<Word> candidates;
 
   @override
-  State<AskDefinitionWidget> createState() => AskDefinitionWidgetState();
+  State<_AskDefinitionWidgetMain> createState() =>
+      _AskDefinitionWidgetMainState();
 }
 
-class AskDefinitionWidgetState extends State<AskDefinitionWidget>
+class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
     with AutomaticKeepAliveClientMixin {
   _Status _status = _Status.waiting;
   Word? _choice;
+  bool _viewMnemonic = false;
+  bool _viewExample = false;
 
   void _changeStatus(_Status newStatus) {
     setState(() {
@@ -51,6 +125,7 @@ class AskDefinitionWidgetState extends State<AskDefinitionWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -70,139 +145,85 @@ class AskDefinitionWidgetState extends State<AskDefinitionWidget>
             style: const TextStyle(fontSize: 30),
             textAlign: TextAlign.center,
           ),
-          Visibility(
-            visible: _status == _Status.waiting,
-            child: Row(
-              children: [
-                Flexible(
-                  child: TypeAheadField(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      enabled: _status == _Status.waiting,
-                      // autofocus: true,
-                      style: DefaultTextStyle.of(context)
-                          .style
-                          .copyWith(fontStyle: FontStyle.italic),
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              // color: Colors.red,
-                              // color: Theme.of(context).errorColor,
-                              ),
-                        ),
-                        prefixIcon: Icon(Icons.short_text_outlined),
-                      ),
-                      // controller: _answerController,
-                    ),
-                    suggestionsCallback: (pattern) async {
-                      // search definitions from the index
-                      final Set<int> suggestionKeys =
-                          Dictionary.defIndex.search(pattern);
+          Table(
+            children: widget.candidates.map((Word word) {
+              // leading
+              Icon leading = const Icon(Icons.radio_button_unchecked_outlined);
+              if (_status != _Status.waiting) {
+                //-- after grading --//
+                if (_status == _Status.wrong &&
+                    _choice != null &&
+                    _choice!.def == word.def) {
+                  // wrong selection
+                  leading = const Icon(
+                    Icons.cancel_outlined,
+                    color: Colors.red,
+                  );
+                } else if (word.def == widget.question.word.def) {
+                  // correct answer
+                  leading = const Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                  );
+                }
+              }
 
-                      // fetch definitions
-                      final List<Word> words = [];
-                      final Box<Word> box =
-                          await Hive.openBox(Dictionary.boxName);
-                      for (int key in suggestionKeys) {
-                        Word? word = box.get(key);
-                        if (word != null) {
-                          words.add(word);
-                        }
-                      }
+              // enabled
+              bool enabled = true;
+              if (_status != _Status.waiting) {
+                // disable candidates which is not the user's selection
+                // nor correct answer after grading
+                if ((_choice == null || _choice!.def != word.def) &&
+                    widget.question.word.def != word.def) {
+                  enabled = false;
+                }
+              }
 
-                      return words;
-                    },
-                    itemBuilder: (context, Word suggestion) {
-                      return ListTile(
-                        // leading: Icon(Icons.shopping_cart),
-                        title: Text(suggestion.def),
-                        // subtitle: Text('\$${suggestion['price']}'),
-                      );
-                    },
-                    onSuggestionSelected: _grade,
-                    loadingBuilder: (context) => ListTile(
-                      title: Text(AppLocalizations.of(context)!.loading),
-                    ),
-                    noItemsFoundBuilder: (context) => ListTile(
-                      title: Text(
-                        AppLocalizations.of(context)!.notFound,
-                        style: TextStyle(color: Theme.of(context).errorColor),
-                      ),
-                    ),
-                    // errorBuilder: (BuildContext context, Object? error) => Text(
-                    //   '$error AAA',
-                    //   style: TextStyle(color: Theme.of(context).errorColor),
-                    // ),
+              return TableRow(children: [
+                Card(
+                  child: ListTile(
+                    leading: leading,
+                    title: Text(word.def),
+                    onTap: () => _grade(word),
+                    enabled: enabled,
                   ),
                 ),
-                Visibility(
-                  visible: widget.question.word.mnemonic != null &&
-                      widget.question.word.mnemonic != '',
-                  child: JustTheTooltip(
-                    child: const Icon(Icons.lightbulb_outline),
-                    content: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(widget.question.word.mnemonic ?? ''),
-                    ),
-                    triggerMode: TooltipTriggerMode.tap,
-                    preferredDirection: AxisDirection.up,
-                  ),
-                ),
-              ],
-            ),
+              ]);
+            }).toList(),
           ),
-          Visibility(
-            visible: _status == _Status.wrong,
-            child: Card(
-              child: ListTile(
-                leading: const Icon(
-                  Icons.cancel_outlined,
-                  color: Colors.red,
-                ),
-                title: Text(
-                  _choice != null ? _choice!.def : '',
-                  // style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notes_outlined),
+              title: Text(
+                _viewExample
+                    ? widget.question.word.ex
+                    : AppLocalizations.of(context)!.viewExample,
+                style: _viewExample
+                    ? null
+                    : const TextStyle(fontStyle: FontStyle.italic),
               ),
+              onTap: () => setState(() {
+                _viewExample = !_viewExample;
+              }),
             ),
           ),
           Visibility(
-            visible: _status != _Status.waiting,
-            child: Card(
-              child: ListTile(
-                leading: const Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.green,
-                ),
-                title: Text(
-                  widget.question.word.def,
-                  // style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
-          Visibility(
-            visible: _status != _Status.waiting,
-            child: Card(
-              child: ListTile(
-                leading: const Icon(Icons.notes_outlined),
-                title: Text(
-                  widget.question.word.ex,
-                  // style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
-          Visibility(
-            visible: _status != _Status.waiting &&
-                widget.question.word.mnemonic != null &&
+            visible: widget.question.word.mnemonic != null &&
                 widget.question.word.mnemonic != '',
             child: Card(
               child: ListTile(
                 leading: const Icon(Icons.lightbulb_outline),
                 title: Text(
-                  widget.question.word.mnemonic ?? '',
-                  // style: TextStyle(fontWeight: FontWeight.bold),
+                  _viewMnemonic
+                      ? widget.question.word.mnemonic ?? ''
+                      : AppLocalizations.of(context)!.viewMnemonic,
+                  style: _viewMnemonic
+                      ? null
+                      : const TextStyle(fontStyle: FontStyle.italic),
                 ),
+                onTap: () => setState(() {
+                  _viewMnemonic = !_viewMnemonic;
+                }),
               ),
             ),
           ),
