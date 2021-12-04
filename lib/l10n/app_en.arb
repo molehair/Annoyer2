@@ -35,5 +35,8 @@
   "loading": "Loading",
   "giveUp": "Give up",
   "backup": "Backup",
-  "restore": "Restore"
+  "restore": "Restore",
+  "viewDefinition": "View definition",
+  "viewExample": "View example",
+  "viewMnemonic": "View mnemonic"
 }
