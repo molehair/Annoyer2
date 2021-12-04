@@ -166,7 +166,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               leading: const Icon(Icons.short_text_outlined),
               title: Text(
                 _viewDef
-                    ? widget.question.word.ex
+                    ? widget.question.word.def
                     : AppLocalizations.of(context)!.viewDefinition,
                 style: _viewDef
                     ? null
