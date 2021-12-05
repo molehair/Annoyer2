@@ -1,6 +1,5 @@
 // A box for containing all words
 
-import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'index.dart';
@@ -35,6 +34,8 @@ class Dictionary {
         Dictionary.nameIndex.removeByValue(event.key);
         Dictionary.defIndex.removeByValue(event.key);
       } else {
+        Dictionary.nameIndex.removeByValue(event.key);
+        Dictionary.defIndex.removeByValue(event.key);
         Dictionary.nameIndex.add(event.value.name, event.key);
         Dictionary.defIndex.add(event.value.def, event.key);
       }
