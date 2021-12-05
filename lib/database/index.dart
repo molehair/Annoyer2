@@ -3,9 +3,9 @@ import 'package:annoyer/global.dart';
 /// a trie which index a list of sentences for faster search
 class Index<T> {
   Index({this.fullTextMode = false});
-  // TODO: apply full text mode to add/remove
 
   /// If true, a word in a sentence matches even with a non-prefix of the word
+  /// Example: The word 'google' is found by 'oog' only if fullTextMode is true.
   final bool fullTextMode;
 
   final _IndexNode<T> _root = _IndexNode<T>('');
@@ -26,25 +26,13 @@ class Index<T> {
 
       // add
       _root.add(word, 0, value);
-    }
-  }
 
-  /// remove an entry
-  ///
-  /// key: a word or a sentence to be indexed
-  ///
-  /// value: a satellite data bind to the key
-  void remove(String key, T value) {
-    // split key into words with preprocesses
-    List<String> keySplitted = _splitKey(key);
-
-    // for each word
-    for (String word in keySplitted) {
-      // pass empty string
-      if (word == '') continue;
-
-      // remove
-      _root.remove(word, 0, value);
+      // add even more if full text mode
+      if (fullTextMode) {
+        for (int i = 1; i < word.length; i++) {
+          _root.add(word, i, value);
+        }
+      }
     }
   }
 
@@ -68,7 +56,7 @@ class Index<T> {
     // search for the rest
     for (int i = 1; i < keySplitted.length; i++) {
       Set<T> additionalValues = _root.search(keySplitted[i], 0);
-      values = values.union(additionalValues);
+      values = values.intersection(additionalValues);
     }
 
     return values;
@@ -110,26 +98,6 @@ class _IndexNode<T> {
 
       // do the rest
       child.add(word, i + 1, value);
-    }
-  }
-
-  /// remove (word[i..], value) pair to the children recursively
-  void remove(String word, int i, T value) {
-    // finished?
-    if (i < word.length) {
-      String nextKey = word[i];
-
-      // Get the child
-      _IndexNode<T>? child = _children[nextKey];
-
-      // remove only if there exist the child
-      if (child != null) {
-        // removing..
-        child._values.remove(value);
-
-        // do the rest
-        child.remove(word, i + 1, value);
-      }
     }
   }
 
