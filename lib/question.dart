@@ -58,10 +58,6 @@ class Question {
   ///                The first one has the end-to-end distance 8-0=8.
   ///                The second one has the end-to-end distance 10-8=2.
   ///                Thus, the second occurrence was chosen.
-  ///
-  /// TODO: deal with past tenses
-  ///       e.g) name: turn the tables on
-  ///            ex: Wow, they really turned the tables on their opponents after the intermission.
   String _blankify(String sentence, String term, {String blank = _blank}) {
     // split by spaces
     final List<String> sentenceSplitted = sentence.split(' ');
