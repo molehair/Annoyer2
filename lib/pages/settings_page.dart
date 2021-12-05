@@ -25,8 +25,7 @@ class SettingsPage extends StatefulWidget {
   _SettingsState createState() => _SettingsState();
 }
 
-class _SettingsState extends State<SettingsPage>
-    with AutomaticKeepAliveClientMixin {
+class _SettingsState extends State<SettingsPage> {
   Settings _settings = Settings();
 
   _loadSettings() async {
@@ -221,6 +220,9 @@ class _SettingsState extends State<SettingsPage>
         // restore to the database
         final Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
         await box.addAll(words);
+
+        // show success indicator
+        Global.showSuccess();
       } on Exception catch (e) {
         debugPrint(e.toString());
       }
@@ -229,7 +231,6 @@ class _SettingsState extends State<SettingsPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
       body: ListView(
@@ -333,7 +334,4 @@ class _SettingsState extends State<SettingsPage>
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }
