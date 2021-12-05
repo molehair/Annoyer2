@@ -10,6 +10,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'widgets/ask_definition_widget.dart';
 import 'widgets/ask_word_widget.dart';
 
+/// the required minimum number of words in dictionary
+///
+/// This is needed because at least four selections from dictionary must be
+/// available in multiple choice questions.
+/// If there are other method to get selections such as fetching from
+/// pre-defined definitions or examples, then consider remove this limit.
+const int _minNumWords = 4;
+
 class TestPage extends StatelessWidget {
   TestPage({Key? key})
       : loader = _load(),
@@ -24,25 +32,12 @@ class TestPage extends StatelessWidget {
     // load training words
     TrainingData? trainingData = await TrainingSystem.loadTrainingWords();
 
-    // Validation check.
-    if (trainingData == null ||
-        trainingData.expiration.isBefore(DateTime.now())) {
-      // If fails, make one.
-      trainingData = await TrainingSystem.createTrainingData();
-
-      // save if successfully made
-      if (trainingData != null) {
-        await TrainingSystem.saveTrainingWords(trainingData);
-      }
-    }
-
     // Validation check
-    if (trainingData == null ||
-        trainingData.expiration.isBefore(DateTime.now())) {
-      //-- invalid --//
-      // remove them
-      await TrainingSystem.removeTrainingWords();
-    } else {
+    Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
+    if (trainingData != null &&
+            DateTime.now().isBefore(trainingData.expiration) && // expiration
+            box.keys.length >= _minNumWords // minimum number of words
+        ) {
       //-- valid --//
       // create questions
       Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
@@ -50,12 +45,15 @@ class TestPage extends StatelessWidget {
         // get a word
         dynamic key = trainingData.wordKeys[i];
         Word? word = box.get(key);
-
         if (word != null) {
           //-- make a question --//
           questions.add(Question.random(word));
         }
       }
+    } else {
+      //-- invalid --//
+      // remove them
+      await TrainingSystem.removeTrainingWords();
     }
 
     return questions;
