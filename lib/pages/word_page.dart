@@ -112,6 +112,7 @@ class WordPage extends StatelessWidget {
       FloatingActionButton(
         onPressed: () => set(context),
         child: const Icon(Icons.check),
+        heroTag: null,
       ),
     ];
     if (!createMode) {
@@ -121,6 +122,7 @@ class WordPage extends StatelessWidget {
         FloatingActionButton(
           onPressed: () => delete(context),
           child: const Icon(Icons.delete),
+          heroTag: null,
         ),
       );
     }
@@ -144,6 +146,7 @@ class WordPage extends StatelessWidget {
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.word + '*',
+                  border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -152,15 +155,17 @@ class WordPage extends StatelessWidget {
                   return null;
                 },
                 controller: _nameController,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
               ),
               TextFormField(
-                // TODO: allow multiple lines
                 decoration: InputDecoration(
                   icon: const Icon(
                     Icons.short_text_outlined,
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.definition + '*',
+                  border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -169,15 +174,17 @@ class WordPage extends StatelessWidget {
                   return null;
                 },
                 controller: _defController,
+                maxLines: null,
+                textInputAction: TextInputAction.next,
               ),
               TextFormField(
-                // TODO: allow multiple lines
                 decoration: InputDecoration(
                   icon: const Icon(
                     Icons.notes_outlined,
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.example + '*',
+                  border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -186,18 +193,19 @@ class WordPage extends StatelessWidget {
                   return null;
                 },
                 controller: _exController,
+                textInputAction: TextInputAction.next,
               ),
-              // const SizedBox(height: 24),
               TextFormField(
-                // TODO: allow multiple lines
                 decoration: InputDecoration(
                   icon: const Icon(
                     Icons.lightbulb_outline,
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.mnemonic,
+                  border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 controller: _mnemonicController,
+                textInputAction: TextInputAction.none,
               ),
               Row(
                 children: buttons,
