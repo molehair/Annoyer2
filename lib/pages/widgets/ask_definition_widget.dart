@@ -14,6 +14,7 @@ enum _Status {
   wrong,
 }
 
+/// Must have at least four(preferrably 16) words in the dictionary
 class AskDefinitionWidget extends StatelessWidget {
   AskDefinitionWidget({
     Key? key,
@@ -128,8 +129,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: ListView(
         children: [
           const SizedBox(height: 24),
           Text(
@@ -140,11 +140,13 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 48),
           Text(
             widget.question.word.name,
             style: const TextStyle(fontSize: 30),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 48),
           Table(
             children: widget.candidates.map((Word word) {
               // leading
@@ -191,6 +193,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
               ]);
             }).toList(),
           ),
+          const SizedBox(height: 24),
           Card(
             child: ListTile(
               leading: const Icon(Icons.notes_outlined),
@@ -227,6 +230,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
               ),
             ),
           ),
+          const SizedBox(height: 24),
           Visibility(
             visible: _status == _Status.waiting,
             child: TextButton(
