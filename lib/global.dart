@@ -48,7 +48,7 @@ class Global {
     showDialog(
         context: navigatorKey.currentContext!,
         builder: (BuildContext context) {
-          return SimpleDialog(
+          return const SimpleDialog(
             // title: Text(title),
             children: <Widget>[
               Icon(
@@ -63,6 +63,6 @@ class Global {
 
   /// remove all special characters(,!? and so on)
   static String removeSpecials(String sentence) {
-    return sentence.replaceAll(RegExp(r'(?:_|[^\w\s])+'), '');
+    return sentence.replaceAll(RegExp(r'[!-@\[-`\{-~]+'), ' ');
   }
 }
