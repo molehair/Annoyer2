@@ -46,6 +46,9 @@ class TrainingSystem {
 
   /// Must be called after notification manager is initialized.
   static initialization() async {
+    // set channel
+    AwesomeNotifications().setChannel(notificationChannel);
+
     // listen to tapping a notification
     AwesomeNotifications()
         .actionStream
