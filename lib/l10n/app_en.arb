@@ -38,5 +38,9 @@
   "restore": "Restore",
   "viewDefinition": "View definition",
   "viewExample": "View example",
-  "viewMnemonic": "View mnemonic"
+  "viewMnemonic": "View mnemonic",
+  "totalNumWords": "Total $",
+  "@totalNumWords": {
+    "description": "on the dictionary page. $ should be replaced by actual word count"
+  }
 }
