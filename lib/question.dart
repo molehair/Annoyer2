@@ -68,11 +68,11 @@ class Question {
     final Map<String, int> wordMap = {};
     final List<int> termConverted = [];
     for (String word in termSplitted) {
-      String wordEscaped = Global.removeSpecials(word);
-      if (!wordMap.containsKey(wordEscaped)) {
-        wordMap[wordEscaped] = wordMap.length;
+      String wordProcessed = Global.removeSpecials(word).trim();
+      if (!wordMap.containsKey(wordProcessed)) {
+        wordMap[wordProcessed] = wordMap.length;
       }
-      termConverted.add(wordMap[wordEscaped]!);
+      termConverted.add(wordMap[wordProcessed]!);
     }
 
     // convert example sentence into integer list
@@ -80,10 +80,10 @@ class Question {
     final List<int> sentenceIndices = [];
     for (int i = 0; i < sentenceSplitted.length; i++) {
       String word = sentenceSplitted[i];
-      String wordEscapedLowered = Global.removeSpecials(word).toLowerCase();
-      if (wordMap.containsKey(wordEscapedLowered)) {
+      String wordProcessed = Global.removeSpecials(word).toLowerCase().trim();
+      if (wordMap.containsKey(wordProcessed)) {
         sentenceIndices.add(i);
-        sentenceConverted.add(wordMap[wordEscapedLowered]!);
+        sentenceConverted.add(wordMap[wordProcessed]!);
       }
     }
 
