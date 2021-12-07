@@ -61,8 +61,9 @@ class Global {
         });
   }
 
-  /// remove all special characters(,!? and so on)
+  /// remove non-word characters(,!? and so on)
+  /// except hyphen
   static String removeSpecials(String sentence) {
-    return sentence.replaceAll(RegExp(r'[!-@\[-`\{-~]+'), ' ');
+    return sentence.replaceAll(RegExp(r'[!-,.-@\[-`\{-~]+'), ' ');
   }
 }

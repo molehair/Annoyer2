@@ -63,16 +63,15 @@ class Question {
     final List<String> sentenceSplitted = sentence.split(' ');
     final List<String> termSplitted = term.split(' ');
 
-    // map each word to an integer
-    // and convert term into integer representation
+    // Map each word to an integer and convert term into integer representation
     final Map<String, int> wordMap = {};
     final List<int> termConverted = [];
     for (String word in termSplitted) {
-      String wordProcessed = Global.removeSpecials(word).trim();
-      if (!wordMap.containsKey(wordProcessed)) {
-        wordMap[wordProcessed] = wordMap.length;
+      String processedWord = _processWord(word);
+      if (!wordMap.containsKey(processedWord)) {
+        wordMap[processedWord] = wordMap.length;
       }
-      termConverted.add(wordMap[wordProcessed]!);
+      termConverted.add(wordMap[processedWord]!);
     }
 
     // convert example sentence into integer list
@@ -80,10 +79,13 @@ class Question {
     final List<int> sentenceIndices = [];
     for (int i = 0; i < sentenceSplitted.length; i++) {
       String word = sentenceSplitted[i];
-      String wordProcessed = Global.removeSpecials(word).toLowerCase().trim();
-      if (wordMap.containsKey(wordProcessed)) {
+      String processedWord = _processWord(word);
+      String? matchedWord = _matchingWord(wordMap, processedWord);
+
+      if (matchedWord != null) {
+        // `word` or its one of variants matches a word in the map
         sentenceIndices.add(i);
-        sentenceConverted.add(wordMap[wordProcessed]!);
+        sentenceConverted.add(wordMap[matchedWord]!);
       }
     }
 
@@ -123,9 +125,7 @@ class Question {
 
       // replace the words at the selected indices with blanks
       for (int index in selectedIndices) {
-        String word = sentenceSplitted[index];
-        String wordEscaped = Global.removeSpecials(word);
-        sentenceSplitted[index] = word.replaceFirst(RegExp(wordEscaped), blank);
+        sentenceSplitted[index] = blank;
       }
     }
 
@@ -171,5 +171,72 @@ class Question {
     }
 
     return patternIndices;
+  }
+
+  /// Given a word,
+  ///   1. remove all special characters
+  ///   2. make it lower cases, and
+  ///   3. trim it.
+  String _processWord(String word) {
+    return Global.removeSpecials(word).toLowerCase().trim();
+  }
+
+  /// Given a processed word and the word map generated from the term,
+  /// check if the word is included the map.
+  String? _matchingWord(Map<String, int> wordMap, String processedWord) {
+    String matchedWord;
+
+    // match as it is (e.g. pay -> pay)
+    if (wordMap.containsKey(processedWord)) {
+      return processedWord;
+    }
+
+    // past tense 1 (e.g. turned -> turn)
+    if (processedWord.length > 2 && processedWord.endsWith('ed')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 2);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
+
+    // past tense 2 (e.g. liked -> like)
+    if (processedWord.length > 1 && processedWord.endsWith('d')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 1);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
+
+    // present participle 1 (e.g. studying -> study)
+    if (processedWord.length > 3 && processedWord.endsWith('ing')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 3);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
+
+    // present participle 2 (e.g. liking -> like)
+    if (processedWord.length > 3 && processedWord.endsWith('ing')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 3) + 'e';
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
+
+    // plural 1 (e.g. apples -> apple)
+    if (processedWord.length > 1 && processedWord.endsWith('s')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 1);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
+
+    // plural 2 (e.g. boxes -> box)
+    if (processedWord.length > 1 && processedWord.endsWith('es')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 2);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
   }
 }

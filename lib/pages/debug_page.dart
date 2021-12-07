@@ -71,6 +71,38 @@ class DebugPage extends StatelessWidget {
             title: const Text('add bulk words'),
             onTap: () async {
               Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
+              List<Word> words = [
+                Word(
+                  name: 'turn the tables on',
+                  def: 'to change or reverse something dramatically',
+                  ex: 'Wow, they really turned the tables on their opponents after the intermission.',
+                ),
+                Word(
+                  name: 'read between the lines',
+                  def:
+                      'look for or discover a meaning that is hidden or implied rather than explicitly stated.',
+                  ex: "After listening to what she said, if you read between the lines, you can begin to see what she really means. Don't believe every thing you read literally. Learn to read between the lines.",
+                ),
+                Word(
+                  name: 'laid-back',
+                  def: 'relaxed and easy-going',
+                  ex: "Angie wished to give up her busy, New York City lifestyle for laid-back beach life.",
+                ),
+                Word(
+                  name: 'knock off',
+                  def:
+                      'to cause something to fall off of a surface by striking or colliding with it, either intentionally or unintentionally',
+                  ex: "Please don't dance so close to the table, you'll knock off those papers.",
+                ),
+              ];
+
+              await box.addAll(words);
+            },
+          ),
+          ListTile(
+            title: const Text('add bulk words 2'),
+            onTap: () async {
+              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
               List<Word> words = [];
               for (int i = 0; i < 17; i++) {
                 Word word = Word(name: 'word$i', def: 'def$i', ex: 'ex$i');
