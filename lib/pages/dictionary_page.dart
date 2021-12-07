@@ -107,17 +107,19 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
                         style: const TextStyle(color: Colors.white))
                     : Text(AppLocalizations.of(context)!.dictionary),
                 actions: <Widget>[
-                  IconButton(
-                    icon: const Icon(
-                      Icons.search,
-                      size: 26.0,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _searchMode = true;
-                      });
-                    },
-                  ),
+                  _searchMode
+                      ? IconButton(
+                          icon: const Icon(Icons.close, size: 26.0),
+                          onPressed: () => setState(() {
+                            _searchController.clear();
+                          }),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.search, size: 26.0),
+                          onPressed: () => setState(() {
+                            _searchMode = true;
+                          }),
+                        ),
                 ]),
             body: ListView.builder(
               itemCount: words.length + 1,
