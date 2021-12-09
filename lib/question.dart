@@ -94,19 +94,15 @@ class Question {
         _findPattern(sentenceConverted, termConverted);
 
     // select occurrence(s) to be blankifed
+    final List<int> selectedIndices = [];
     if (termSplitted.length == 1) {
       // blankify every occurrences
-      for (int i = 0; i < sentenceSplitted.length; i++) {
-        String word = sentenceSplitted[i];
-        String wordEscaped = Global.removeSpecials(word);
-        if (wordMap.containsKey(wordEscaped)) {
-          sentenceSplitted[i] = word.replaceFirst(RegExp(wordEscaped), blank);
-        }
+      for (int index in patternIndices) {
+        selectedIndices.add(sentenceIndices[index]);
       }
     } else {
-      // blankify only one occurrence which has the minimum end-to-end distance in index
-      int minDist = sentenceConverted.length;
-      final List<int> selectedIndices = [];
+      // blankify only one occurrence which has the minimum end-to-end distance
+      int minDist = sentenceSplitted.length;
       for (int index in patternIndices) {
         // distance test
         int beginIndex = sentenceIndices[index];
@@ -122,11 +118,11 @@ class Question {
           }
         }
       }
+    }
 
-      // replace the words at the selected indices with blanks
-      for (int index in selectedIndices) {
-        sentenceSplitted[index] = blank;
-      }
+    // replace the words at the selected indices with blanks
+    for (int index in selectedIndices) {
+      sentenceSplitted[index] = blank;
     }
 
     // concatenate the blankified words
