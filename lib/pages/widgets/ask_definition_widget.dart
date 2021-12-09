@@ -114,7 +114,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
 
   void _grade(Word? choice) async {
     _choice = choice;
-    if (choice == null || choice.def != widget.question.word.def) {
+    if (choice == null || choice.name != widget.question.word.name) {
       await TrainingSystem.grade(widget.question.word, false);
       _changeStatus(_Status.wrong);
     } else {
