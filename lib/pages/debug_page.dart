@@ -73,6 +73,24 @@ class DebugPage extends StatelessWidget {
               Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
               List<Word> words = [
                 Word(
+                  name: 'brainwash into',
+                  def:
+                      "to condition one’s mind into believing information by repeatedly telling them something or using manipulation",
+                  ex: "Using hypnosis, the magician was able to brainwash the audience member into believing that he was a chicken.",
+                ),
+                Word(
+                  name: 'attorney',
+                  def:
+                      "a person appointed to act for another in business or legal matters(frequently, lawyer)",
+                  ex: "If you’re ever arrested, refuse to answer questions and ask to speak to an attorney.",
+                ),
+                Word(
+                  name: 'enclave',
+                  def:
+                      "a portion of territory surrounded by a larger territory whose inhabitants are culturally or ethnically distinct.",
+                  ex: "As the teen explored the immigrant enclave, he felt as though he was in another nation.",
+                ),
+                Word(
                   name: 'turn the tables on',
                   def: 'to change or reverse something dramatically',
                   ex: 'Wow, they really turned the tables on their opponents after the intermission.',
