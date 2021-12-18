@@ -112,6 +112,11 @@ class DebugPage extends StatelessWidget {
                       'to cause something to fall off of a surface by striking or colliding with it, either intentionally or unintentionally',
                   ex: "Please don't dance so close to the table, you'll knock off those papers.",
                 ),
+                Word(
+                  name: "Don't get me wrong",
+                  def: "Don't misinterpret what I'm saying as criticism",
+                  ex: "I mean, don't get me wrong. Joanie's my best friend, but she can be kind of a pain sometimes.",
+                ),
               ];
 
               await box.addAll(words);
