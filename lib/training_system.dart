@@ -65,6 +65,19 @@ class TrainingSystem {
     _onTrainingDataChange(box.watch());
   }
 
+  /// check if the requirements for running the training
+  ///
+  /// Return null if it is available.
+  /// Otherwise error message is returned.
+  static Future<String?> checkAvailability() async {
+    // have at least four words in the dictionary
+    Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
+    if (box.length < 4) {
+      final BuildContext context = Global.navigatorKey.currentContext!;
+      return AppLocalizations.of(context)!.atLeast4WordsRequired;
+    }
+  }
+
   // callback when there's a change on training data
   static _onTrainingDataChange(Stream<BoxEvent> stream) async {
     await for (final BoxEvent event in stream) {

@@ -29,12 +29,21 @@ class _SettingsState extends State<SettingsPage> {
   Settings _settings = Settings();
 
   _loadSettings() async {
+    // load settings
     Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
+    _settings = box.get(Settings.key) ?? Settings();
+
+    // turn off alarm if it's not available
+    if (_settings.alarmEnabled) {
+      String? errorMsg = await TrainingSystem.checkAvailability();
+      if (errorMsg != null) {
+        _settings.alarmEnabled = false;
+        Global.showMessage(msg: errorMsg, type: ShowMessageType.error);
+      }
+    }
 
     // update the state
-    setState(() {
-      _settings = box.get(Settings.key) ?? Settings();
-    });
+    setState(() {});
   }
 
   @override
@@ -46,6 +55,15 @@ class _SettingsState extends State<SettingsPage> {
 
   Future<void> _alarmSwitch(bool newAlarmEnabled) async {
     try {
+      // check if it's available
+      if (newAlarmEnabled) {
+        String? errorMsg = await TrainingSystem.checkAvailability();
+        if (errorMsg != null) {
+          Global.showMessage(msg: errorMsg, type: ShowMessageType.error);
+          return;
+        }
+      }
+
       // set the new settings
       Settings newSettings = Settings.from(_settings);
       newSettings.alarmEnabled = newAlarmEnabled;
