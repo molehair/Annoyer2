@@ -87,7 +87,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
                         // color: Theme.of(context).errorColor,
                         ),
                   ),
-                  prefixIcon: Icon(Icons.short_text_outlined),
+                  prefixIcon: Icon(Icons.title_outlined),
                 ),
                 // controller: _answerController,
               ),
