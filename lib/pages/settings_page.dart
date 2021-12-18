@@ -9,6 +9,7 @@ import 'package:annoyer/training_system.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -211,15 +212,18 @@ class _SettingsState extends State<SettingsPage> {
   }
 
   void _restore() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
+    try {
+      // let the user pick the file
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
 
-    if (result != null) {
-      //-- User selected a file --//
+      debugPrint('aaaaaaaaaaaaaaaaaaaaaaa');
 
-      try {
+      if (result != null) {
+        //-- User selected a file --//
+
         // read from file
         final File file = File(result.files.single.path!);
         final String backupJson = await file.readAsString();
@@ -241,9 +245,11 @@ class _SettingsState extends State<SettingsPage> {
 
         // show success indicator
         Global.showSuccess();
-      } on Exception catch (e) {
-        debugPrint(e.toString());
       }
+    } on PlatformException catch (e) {
+      debugPrint(e.code);
+    } on Exception catch (e) {
+      debugPrint(e.toString());
     }
   }
 

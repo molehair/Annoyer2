@@ -43,5 +43,5 @@
   "@totalNumWords": {
     "description": "on the dictionary page. $ should be replaced by actual word count"
   },
-  "atLeast4WordsRequired": "At least four words are requied."
+  "atLeast4WordsRequired": "At least four words are required."
 }
