@@ -140,8 +140,18 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
                   //-- data --//
                   index--;
                   Word word = words[index];
+                  bool idiom = word.name.trim().contains(' ');
                   widget = Card(
                     child: ListTile(
+                      leading: CircleAvatar(
+                        child: Text(
+                          idiom ? 'Idiom' : 'Word',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: idiom
+                            ? Theme.of(context).secondaryHeaderColor
+                            : null,
+                      ),
                       title: Text(word.name),
                       // subtitle: Text(word.ex),
                       onTap: () => Navigator.of(context).push(
