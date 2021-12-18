@@ -119,7 +119,7 @@ class PracticePage extends StatelessWidget {
                                   ),
                                   ListTile(
                                     contentPadding:
-                                        const EdgeInsets.only(left: 40),
+                                        const EdgeInsets.fromLTRB(40, 0, 20, 0),
                                     title: Text(word.def),
                                   ),
                                 ],
@@ -138,7 +138,7 @@ class PracticePage extends StatelessWidget {
                                   ),
                                   ListTile(
                                     contentPadding:
-                                        const EdgeInsets.only(left: 40),
+                                        const EdgeInsets.fromLTRB(40, 0, 20, 0),
                                     title: Text(word.ex),
                                   ),
                                 ],
@@ -159,8 +159,8 @@ class PracticePage extends StatelessWidget {
                                       dense: true,
                                     ),
                                     ListTile(
-                                      contentPadding:
-                                          const EdgeInsets.only(left: 40),
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          40, 0, 20, 0),
                                       title: Text(word.mnemonic ?? ''),
                                     ),
                                   ],
