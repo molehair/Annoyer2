@@ -54,8 +54,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
     super.build(context);
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: ListView(
         children: [
           const SizedBox(height: 24),
           Text(
@@ -66,11 +65,13 @@ class _AskWordWidgetState extends State<AskWordWidget>
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 36),
           Text(
             widget.question.blankfiedEx,
             style: const TextStyle(fontSize: 20),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 36),
           Visibility(
             visible: _status == _Status.waiting,
             child: TypeAheadField(
@@ -131,6 +132,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               // ),
             ),
           ),
+          const SizedBox(height: 24),
           Visibility(
             visible: _status == _Status.wrong,
             child: Card(
@@ -146,6 +148,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               ),
             ),
           ),
+          const SizedBox(height: 24),
           Visibility(
             visible: _status != _Status.waiting,
             child: Card(
@@ -161,6 +164,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               ),
             ),
           ),
+          const SizedBox(height: 24),
           Card(
             child: ListTile(
               leading: const Icon(Icons.short_text_outlined),
@@ -177,6 +181,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               }),
             ),
           ),
+          const SizedBox(height: 24),
           Visibility(
             visible: widget.question.word.mnemonic != null &&
                 widget.question.word.mnemonic != '',
@@ -197,6 +202,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               ),
             ),
           ),
+          const SizedBox(height: 24),
           Visibility(
             visible: _status == _Status.waiting,
             child: TextButton(

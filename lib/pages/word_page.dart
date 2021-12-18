@@ -135,9 +135,7 @@ class WordPage extends StatelessWidget {
         padding: const EdgeInsets.all(8.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
               TextFormField(
                 decoration: InputDecoration(
@@ -146,7 +144,7 @@ class WordPage extends StatelessWidget {
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.word + '*',
-                  border: const OutlineInputBorder(borderSide: BorderSide()),
+                  // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -158,6 +156,7 @@ class WordPage extends StatelessWidget {
                 autofocus: true,
                 textInputAction: TextInputAction.next,
               ),
+              const SizedBox(height: 24),
               TextFormField(
                 decoration: InputDecoration(
                   icon: const Icon(
@@ -165,7 +164,7 @@ class WordPage extends StatelessWidget {
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.definition + '*',
-                  border: const OutlineInputBorder(borderSide: BorderSide()),
+                  // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -177,6 +176,7 @@ class WordPage extends StatelessWidget {
                 maxLines: null,
                 textInputAction: TextInputAction.next,
               ),
+              const SizedBox(height: 24),
               TextFormField(
                 decoration: InputDecoration(
                   icon: const Icon(
@@ -184,7 +184,7 @@ class WordPage extends StatelessWidget {
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.example + '*',
-                  border: const OutlineInputBorder(borderSide: BorderSide()),
+                  // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -195,6 +195,7 @@ class WordPage extends StatelessWidget {
                 controller: _exController,
                 textInputAction: TextInputAction.next,
               ),
+              const SizedBox(height: 24),
               TextFormField(
                 decoration: InputDecoration(
                   icon: const Icon(
@@ -202,11 +203,12 @@ class WordPage extends StatelessWidget {
                     size: 32,
                   ),
                   labelText: AppLocalizations.of(context)!.mnemonic,
-                  border: const OutlineInputBorder(borderSide: BorderSide()),
+                  // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 controller: _mnemonicController,
                 textInputAction: TextInputAction.none,
               ),
+              const SizedBox(height: 24),
               Row(
                 children: buttons,
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
