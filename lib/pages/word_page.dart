@@ -193,6 +193,7 @@ class WordPage extends StatelessWidget {
                   return null;
                 },
                 controller: _exController,
+                maxLines: null,
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 24),
@@ -206,6 +207,7 @@ class WordPage extends StatelessWidget {
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 controller: _mnemonicController,
+                maxLines: null,
                 textInputAction: TextInputAction.none,
               ),
               const SizedBox(height: 24),
