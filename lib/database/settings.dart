@@ -31,6 +31,7 @@ class Settings {
 
   Settings();
 
+  /// init from other Settings
   Settings.from(Settings other)
       : alarmEnabled = other.alarmEnabled,
         alarmTimeHour = other.alarmTimeHour,
