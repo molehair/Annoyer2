@@ -29,11 +29,13 @@ class Dictionary {
   // callback when there's a change on dictionary
   static _onDictionaryChange(Stream<BoxEvent> stream) async {
     await for (final BoxEvent event in stream) {
-      // manage indexes
+      // a record is deleted?
       if (event.deleted) {
+        // indexes
         Dictionary.nameIndex.removeByValue(event.key);
         Dictionary.defIndex.removeByValue(event.key);
       } else {
+        // indexes
         Dictionary.nameIndex.removeByValue(event.key);
         Dictionary.defIndex.removeByValue(event.key);
         Dictionary.nameIndex.add(event.value.name, event.key);
