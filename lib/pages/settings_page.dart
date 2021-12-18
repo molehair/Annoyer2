@@ -219,8 +219,6 @@ class _SettingsState extends State<SettingsPage> {
         allowedExtensions: ['json'],
       );
 
-      debugPrint('aaaaaaaaaaaaaaaaaaaaaaa');
-
       if (result != null) {
         //-- User selected a file --//
 
@@ -247,7 +245,12 @@ class _SettingsState extends State<SettingsPage> {
         Global.showSuccess();
       }
     } on PlatformException catch (e) {
-      debugPrint(e.code);
+      if (e.code == 'read_external_storage_denied') {
+        Global.showMessage(
+          msg: AppLocalizations.of(context)!.storagePermissionRequired,
+          type: ShowMessageType.error,
+        );
+      }
     } on Exception catch (e) {
       debugPrint(e.toString());
     }
