@@ -94,7 +94,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
               suggestionsCallback: (pattern) async {
                 // search definitions from the index
                 final Set<int> suggestionKeys =
-                    Dictionary.nameIndex.search(pattern);
+                    Dictionary.nameIndex.search(pattern.trim());
 
                 // fetch definitions
                 final List<Word> words = [];
