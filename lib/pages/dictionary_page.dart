@@ -143,7 +143,7 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
                   widget = Card(
                     child: ListTile(
                       title: Text(word.name),
-                      subtitle: Text(word.ex),
+                      // subtitle: Text(word.ex),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => WordPage(
