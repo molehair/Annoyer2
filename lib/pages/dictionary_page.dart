@@ -256,7 +256,9 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
                   } else {
                     leading = CircleAvatar(
                       child: Text(
-                        idiom ? 'Idiom' : 'Word',
+                        idiom
+                            ? AppLocalizations.of(context)!.idiom
+                            : AppLocalizations.of(context)!.word,
                         style: const TextStyle(fontSize: 12),
                       ),
                       backgroundColor:
