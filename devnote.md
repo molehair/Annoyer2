@@ -1,23 +1,27 @@
+- todo
+  - log system
+  - animation
+  - word/idiom auto complete with dictionary APIs
+    - offline dictionary
+      - https://github.com/wordset/wordset-dictionary
+  - show level on dictionary, practice and test page?
+  - index
+    - delete non-fulltext mode?
+    - in full text mode, delete all whitespaces and put the word into the trie
+  - schedule again after reboot
+    - user need to fire the app once for scheduling for now
+
 - server considerations
+  
   - use websocket for real time update
   - which DB?
   - go or java?
   - docker
-  
-
-- features to add
-  - word/idiom auto complete with dictionary APIs
-  - animation
-  - search / filter words
-  - multiple deletion
-  - offline dictionary
-    - https://github.com/wordset/wordset-dictionary
 
 - to check
-  - switch between two accounts and see it doesn't load the other's dictionary.
-  - alarms persist after rebooting?
 
 - training system
+  
   - total time : L
   - num. of words a day : n
   - num. of repetitions a word : m
@@ -29,17 +33,13 @@
   - The chosen words on a day are distinct.
   - If the total number of words is less than n, then always choose all of them.
 
-
 - level system
   - Every word has a level(positive integer).
   - The initial and the minimum level is 1.
   - When the user correctly answers the quiz pertaining to a word, its level increases, while it decreases when he or she fails.
 
-
-
-
-
 // tmp
+
 - server db
   - users
     - uid
