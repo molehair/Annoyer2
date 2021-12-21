@@ -96,12 +96,12 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // clear outdated words
-    words.clear();
-
     return ValueListenableBuilder(
       valueListenable: widget.box.listenable(),
       builder: (context, Box<Word> box, widget) {
+        // clear outdated words
+        words.clear();
+
         // prepare list to show depending on the search mode
         Iterable<dynamic> keys = _searchMode
             ? Dictionary.nameIndex.search(_searchController.text.trim())
