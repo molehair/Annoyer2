@@ -1,4 +1,5 @@
 - todo
+  - conceive a way of revisiting practice and test
   - log system
   - animation
   - word/idiom auto complete with dictionary APIs
