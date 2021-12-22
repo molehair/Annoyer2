@@ -1,5 +1,6 @@
 - todo
   - conceive a way of revisiting practice and test
+  - set the training time range instead of starting time
   - log system
   - animation
   - word/idiom auto complete with dictionary APIs
