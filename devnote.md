@@ -1,4 +1,6 @@
 - todo
+  - blankify
+    - consecutive (+ly)
   - conceive a way of revisiting practice and test
   - set the training time range instead of starting time
   - log system
