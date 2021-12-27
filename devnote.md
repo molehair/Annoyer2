@@ -1,6 +1,7 @@
 - todo
   - blankify
     - consecutive (+ly)
+  - On tapping consolidated notifications?
   - conceive a way of revisiting practice and test
   - set the training time range instead of starting time
   - log system
