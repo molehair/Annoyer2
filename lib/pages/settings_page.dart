@@ -152,8 +152,7 @@ class _SettingsState extends State<SettingsPage> {
       Settings newSettings = Settings.from(_settings);
       newSettings.alarmWeekdays[weekday] = !newSettings.alarmWeekdays[weekday];
 
-      debugPrint('${newSettings.alarmWeekdays.runtimeType}');
-      if (newSettings.alarmEnabled) {
+      if (newSettings.alarmEnabled && newSettings.alarmWeekdays[weekday]) {
         // reschedule
         await TrainingSystem.setAlarm(
           TimeOfDay(
