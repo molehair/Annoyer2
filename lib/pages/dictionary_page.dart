@@ -265,28 +265,26 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
                           idiom ? Theme.of(context).secondaryHeaderColor : null,
                     );
                   }
-                  widget = Card(
-                    child: ListTile(
-                      leading: leading,
-                      title: Text(word.name),
-                      // subtitle: Text(word.ex),
-                      onTap: () {
-                        if (_selectionMode) {
-                          _updateSelection(word, null);
-                        } else {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => WordPage(
-                                createMode: false,
-                                storeKey: word.key,
-                                word: word,
-                              ),
+                  widget = ListTile(
+                    leading: leading,
+                    title: Text(word.name),
+                    // subtitle: Text(word.ex),
+                    onTap: () {
+                      if (_selectionMode) {
+                        _updateSelection(word, null);
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => WordPage(
+                              createMode: false,
+                              storeKey: word.key,
+                              word: word,
                             ),
-                          );
-                        }
-                      },
-                      onLongPress: () => _enableSelectionMode(word),
-                    ),
+                          ),
+                        );
+                      }
+                    },
+                    onLongPress: () => _enableSelectionMode(word),
                   );
                 }
                 return widget;
