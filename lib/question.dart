@@ -234,5 +234,13 @@ class Question {
         return matchedWord;
       }
     }
+
+    // adverbs (e.g. abruptly -> abrupt)
+    if (processedWord.length > 2 && processedWord.endsWith('ly')) {
+      matchedWord = processedWord.substring(0, processedWord.length - 2);
+      if (wordMap.containsKey(matchedWord)) {
+        return matchedWord;
+      }
+    }
   }
 }
