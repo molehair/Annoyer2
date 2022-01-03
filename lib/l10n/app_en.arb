@@ -49,5 +49,6 @@
   },
   "atLeast4WordsRequired": "At least four words are required.",
   "storagePermissionRequired": "Storage permission is required.",
-  "idiom": "Idiom"
+  "idiom": "Idiom",
+  "wordOrIdiom": "Word or Idiom"
 }

@@ -108,6 +108,7 @@ class WordPage extends StatelessWidget {
     _exController.text = createMode ? '' : word!.ex;
     _mnemonicController.text = createMode ? '' : (word!.mnemonic ?? '');
 
+    // FloatingActionButtons
     List<Widget> buttons = [
       FloatingActionButton(
         onPressed: () => set(context),
@@ -143,7 +144,7 @@ class WordPage extends StatelessWidget {
                     Icons.title_outlined,
                     size: 32,
                   ),
-                  labelText: AppLocalizations.of(context)!.word + '*',
+                  labelText: AppLocalizations.of(context)!.wordOrIdiom + '*',
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 validator: (value) {
