@@ -228,7 +228,7 @@ class Question {
     }
 
     // plural 2 (e.g. boxes -> box)
-    if (processedWord.length > 1 && processedWord.endsWith('es')) {
+    if (processedWord.length > 2 && processedWord.endsWith('es')) {
       matchedWord = processedWord.substring(0, processedWord.length - 2);
       if (wordMap.containsKey(matchedWord)) {
         return matchedWord;
