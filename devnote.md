@@ -1,23 +1,32 @@
 - todo
-  - blankify
-    - consecutive (+ly)
-  - On tapping consolidated notifications?
+  - notification
+    - On tapping consolidated notifications?
   - conceive a way of revisiting practice and test
-  - set the training time range instead of starting time
   - log system
+  - suppress 'Not found' on ask word page when typing
+    - It seems the plugin must be replaced.
   - animation
   - word/idiom auto complete with dictionary APIs
     - offline dictionary
       - https://github.com/wordset/wordset-dictionary
-  - show level on dictionary, practice and test page?
+  - reschedule again after reboot
+    - user need to fire the app once for scheduling for now
+
+- considerations
+  - training system
+    - set the training time range instead of starting time
+    - let the user adjust details such as # of words a day and so on too?
   - index
     - delete non-fulltext mode?
     - in full text mode, delete all whitespaces and put the word into the trie
-  - schedule again after reboot
-    - user need to fire the app once for scheduling for now
+      - but this will prevent searching `go up against` by `gua`
+  - show level on dictionary, practice and test page?
+  
+    
 
 - server considerations
-  
+  - precedence on managing synchronized devices?
+    - If the precedence exists, which one should be? the first device or mobile one?
   - use websocket for real time update
   - which DB?
   - go or java?
