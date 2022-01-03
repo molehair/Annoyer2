@@ -40,6 +40,7 @@ class TrainingSystem {
     channelKey: 'training',
     channelName: 'Training',
     channelDescription: 'Notification channel for training',
+    channelShowBadge: true,
     // defaultColor: Color(0xFF9D50DD),
     // ledColor: Colors.white,
   );
