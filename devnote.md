@@ -2,6 +2,9 @@
   - notification
     - On tapping consolidated notifications?
   - conceive a way of revisiting practice and test
+  - training system
+    - introduce training id
+    - check if validation date is properly set(currently it seems wrong)
   - log system
   - suppress 'Not found' on ask word page when typing
     - It seems the plugin must be replaced.
