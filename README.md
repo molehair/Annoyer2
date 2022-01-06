@@ -33,3 +33,13 @@ Your annoying friend for learning vocabulary
   <img src="screenshots/test1.png" width=320>
   <img src="screenshots/test2.png" width=320>
 </p>
+
+
+
+## Build
+
+```bash
+flutter pub get			# get packages
+flutter pub get			# create internationalization stuff
+flutter build apk
+```
