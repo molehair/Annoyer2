@@ -1,6 +1,7 @@
 // Home provides menus when the user signed in.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'dictionary_page.dart';
 import 'settings_page.dart';
@@ -15,10 +16,6 @@ class HomePage extends StatefulWidget {
 class _HomeState extends State<HomePage> {
   // page setup
   int _index = 0;
-  final List<String> _titles = [
-    'Dictionary',
-    'Settings',
-  ];
   static final List<Widget> _bodies = <Widget>[
     const DictionaryPage(),
     const SettingsPage(),
@@ -40,11 +37,11 @@ class _HomeState extends State<HomePage> {
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: const Icon(Icons.list),
-            label: _titles[0],
+            label: AppLocalizations.of(context)!.settings,
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.settings),
-            label: _titles[1],
+            label: AppLocalizations.of(context)!.dictionary,
           ),
         ],
         currentIndex: _index,
