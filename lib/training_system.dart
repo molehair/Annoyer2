@@ -6,7 +6,6 @@ import 'dart:math';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/pages/test_page.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
