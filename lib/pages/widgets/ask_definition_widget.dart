@@ -1,139 +1,88 @@
-import 'dart:math';
-
-import 'package:annoyer/database/dictionary.dart';
+import 'package:annoyer/database/question_ask_definition.dart';
+import 'package:annoyer/database/test_instance.dart';
 import 'package:annoyer/database/word.dart';
-import 'package:annoyer/question.dart';
-import 'package:annoyer/training_system.dart';
+import 'package:annoyer/database/question.dart';
+import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/log.dart';
+import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
-enum _Status {
-  waiting,
-  correct,
-  wrong,
-}
+class AskDefinitionWidget extends StatefulWidget {
+  final int testInstKey;
+  final QuestionAskDefinition question;
 
-/// Must have at least four(preferrably 16) words in the dictionary
-class AskDefinitionWidget extends StatelessWidget {
-  AskDefinitionWidget({
+  const AskDefinitionWidget({
     Key? key,
+    required this.testInstKey,
     required this.question,
-  }) : super(key: key) {
-    initialization = _selectCandidates();
-  }
-
-  final Question question;
-  late final Future initialization;
-  static const int _numCandidates = 4; // the number of candidates(choices)
-  final List<Word> _candidates = [];
-
-  /// prepare multiple choices
-  Future<void> _selectCandidates() async {
-    // add the correct answer to the candidate list
-    _candidates.add(question.word);
-
-    // fill the rest
-    Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-    int numWords = box.keys.length;
-    Random rng = Random();
-    for (int i = 0; i < _numCandidates - 1;) {
-      // choose a random word from dictionary
-      int r = rng.nextInt(numWords);
-      Word? word = box.getAt(r);
-
-      // check validity(need this code?)
-      if (word == null) {
-        continue;
-      }
-
-      // add to the list only if no duplicate
-      if (!_candidates.contains(word)) {
-        _candidates.add(word);
-        i++;
-      }
-    }
-
-    // shuffle
-    _candidates.shuffle();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: initialization,
-      builder: (context, snapshot) {
-        // Check for errors
-        if (snapshot.hasError) {
-          debugPrint(snapshot.error.toString());
-          return const Text('SomethingWentWrong();');
-        }
-
-        // Once complete, show your application
-        if (snapshot.connectionState == ConnectionState.done) {
-          // ordinary launch
-          return _AskDefinitionWidgetMain(
-            question: question,
-            candidates: _candidates,
-          );
-        }
-
-        return const Text('Loading...');
-      },
-    );
-  }
-}
-
-class _AskDefinitionWidgetMain extends StatefulWidget {
-  const _AskDefinitionWidgetMain({
-    Key? key,
-    required this.question,
-    required this.candidates,
   }) : super(key: key);
 
-  final Question question;
-  final List<Word> candidates;
-
   @override
-  State<_AskDefinitionWidgetMain> createState() =>
-      _AskDefinitionWidgetMainState();
+  State<AskDefinitionWidget> createState() => _AskDefinitionWidgetState();
 }
 
-class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
+class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
     with AutomaticKeepAliveClientMixin {
-  _Status _status = _Status.waiting;
-  Word? _choice;
   bool _viewMnemonic = false;
   bool _viewExample = false;
 
-  void _changeStatus(_Status newStatus) {
-    setState(() {
-      _status = newStatus;
-    });
-  }
+  void _grade(int? usersChoice) async {
+    // grade
+    if (usersChoice != null &&
+        widget.question.choices[usersChoice].name ==
+            widget.question.word.name) {
+      //-- correct --//
+      // set question state
+      widget.question.state = QuestionState.correct;
 
-  void _grade(Word? choice) async {
-    _choice = choice;
-    if (choice == null || choice.name != widget.question.word.name) {
-      await TrainingSystem.grade(widget.question.word, false);
-      _changeStatus(_Status.wrong);
+      // update word level
+      // As this takes long time with firestore, do asynchronously
+      Training.grade(widget.question.word, true);
     } else {
-      await TrainingSystem.grade(widget.question.word, false);
-      _changeStatus(_Status.correct);
+      //-- wrong --//
+      // set question state
+      widget.question.state = QuestionState.wrong;
+
+      // update word level
+      // As this takes long time with firestore, do asynchronously
+      Training.grade(widget.question.word, false);
     }
+
+    // update to db
+    TestInstance? inst = await TestInstance.get(widget.testInstKey);
+    if (inst != null) {
+      widget.question.usersChoice = usersChoice;
+      inst.questions[widget.question.index] = widget.question;
+      await TestInstance.put(inst);
+    } else {
+      logger.e('Unable to get test instance with key ${widget.testInstKey}.');
+    }
+
+    // update the current page
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
+    // Set color for the target word depending on the correctness state
+    Color? wordColor;
+    if (widget.question.state == QuestionState.correct) {
+      wordColor = Colors.green;
+    } else if (widget.question.state == QuestionState.wrong) {
+      wordColor = Colors.red;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListView(
         children: [
           const SizedBox(height: 24),
+
+          // title
           Text(
-            widget.question.question,
+            t.askDefinition,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -141,41 +90,50 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
+
+          // word
           Text(
             widget.question.word.name,
-            style: const TextStyle(fontSize: 30),
+            style: TextStyle(fontSize: 30, color: wordColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
+
+          // choices
           Table(
-            children: widget.candidates.map((Word word) {
+            children: widget.question.choices.asMap().entries.map((e) {
+              int index = e.key;
+              Word word = e.value;
+
+              QuestionState state = widget.question.state;
+              int? usersChoice = widget.question.usersChoice;
+              Word? usersChoiceWord = usersChoice != null
+                  ? widget.question.choices[usersChoice]
+                  : null;
+
               // leading
               Icon leading = const Icon(Icons.radio_button_unchecked_outlined);
-              if (_status != _Status.waiting) {
+              if (state != QuestionState.intertermined) {
                 //-- after grading --//
-                if (_status == _Status.wrong &&
-                    _choice != null &&
-                    _choice!.def == word.def) {
-                  // wrong selection
-                  leading = const Icon(
-                    Icons.cancel_outlined,
-                    color: Colors.red,
-                  );
+                if (state == QuestionState.wrong &&
+                    usersChoiceWord != null &&
+                    usersChoiceWord.def == word.def) {
+                  // wrong choice
+                  leading = const Icon(Icons.close_outlined, color: Colors.red);
                 } else if (word.def == widget.question.word.def) {
                   // correct answer
-                  leading = const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.green,
-                  );
+                  leading =
+                      const Icon(Icons.check_outlined, color: Colors.green);
                 }
               }
 
-              // enabled
+              // enable?
               bool enabled = true;
-              if (_status != _Status.waiting) {
-                // disable candidates which is not the user's selection
+              if (widget.question.state != QuestionState.intertermined) {
+                // Disable candidates which is not the user's choice
                 // nor correct answer after grading
-                if ((_choice == null || _choice!.def != word.def) &&
+                if ((usersChoiceWord == null ||
+                        usersChoiceWord.def != word.def) &&
                     widget.question.word.def != word.def) {
                   enabled = false;
                 }
@@ -186,7 +144,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
                   child: ListTile(
                     leading: leading,
                     title: Text(word.def),
-                    onTap: () => _grade(word),
+                    onTap: () => _grade(index),
                     enabled: enabled,
                   ),
                 ),
@@ -194,13 +152,13 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
             }).toList(),
           ),
           const SizedBox(height: 24),
+
+          // example
           Card(
             child: ListTile(
               leading: const Icon(Icons.notes_outlined),
               title: Text(
-                _viewExample
-                    ? widget.question.word.ex
-                    : AppLocalizations.of(context)!.viewExample,
+                _viewExample ? widget.question.word.ex : t.viewExample,
                 style: _viewExample
                     ? null
                     : const TextStyle(fontStyle: FontStyle.italic),
@@ -219,7 +177,7 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
                 title: Text(
                   _viewMnemonic
                       ? widget.question.word.mnemonic ?? ''
-                      : AppLocalizations.of(context)!.viewMnemonic,
+                      : t.viewMnemonic,
                   style: _viewMnemonic
                       ? null
                       : const TextStyle(fontStyle: FontStyle.italic),
@@ -231,11 +189,13 @@ class _AskDefinitionWidgetMainState extends State<_AskDefinitionWidgetMain>
             ),
           ),
           const SizedBox(height: 24),
+
+          // give up button
           Visibility(
-            visible: _status == _Status.waiting,
+            visible: widget.question.state == QuestionState.intertermined,
             child: TextButton(
               onPressed: () => _grade(null),
-              child: Text(AppLocalizations.of(context)!.giveUp),
+              child: Text(t.giveUp),
             ),
           ),
         ],
