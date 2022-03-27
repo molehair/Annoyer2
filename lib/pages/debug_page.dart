@@ -1,15 +1,31 @@
-import 'package:annoyer/database/dictionary.dart';
+import 'package:annoyer/browser.dart';
+import 'package:annoyer/database/local_settings.dart';
+import 'package:annoyer/database/log_item.dart';
+import 'package:annoyer/database/practice_instance.dart';
+import 'package:annoyer/database/test_instance.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
-import 'package:annoyer/training_system.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
-class DebugPage extends StatelessWidget {
-  DebugPage({Key? key}) : super(key: key);
+class DebugPage extends StatefulWidget {
+  const DebugPage({Key? key}) : super(key: key);
 
+  @override
+  State<DebugPage> createState() => _DebugPageState();
+}
+
+class _DebugPageState extends State<DebugPage> {
   final TextEditingController _dailyIndexController = TextEditingController();
+  final TextEditingController _trainingIdController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _dailyIndexController.text = '0';
+    _trainingIdController.text = '0';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +33,53 @@ class DebugPage extends StatelessWidget {
       appBar: AppBar(title: const Text('debug')),
       body: ListView(
         children: <Widget>[
-          const ListTile(
-            title: Text('training'),
-            dense: true,
+          TextButton(
+            child: const Text('view logs'),
+            onPressed: () async {
+              List<LogItem> logs = await LogItem.getAll();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (context) => Scaffold(
+                          body: ListView(
+                            children: logs
+                                .map((e) => ListTile(title: Text(e.log)))
+                                .toList(),
+                          ),
+                        )),
+              );
+            },
           ),
+          TextButton(
+            child: const Text('delete logs'),
+            onPressed: () async {
+              await LogItem.deleteAll();
+              debugPrint('deleted');
+            },
+          ),
+          const Divider(),
+          TextButton(
+            child: const Text('test1'),
+            onPressed: () async {
+              var insts = await PracticeInstance.getAll();
+              debugPrint(insts.length.toString());
+            },
+          ),
+          TextButton(
+            child: const Text('test2'),
+            onPressed: () async {},
+          ),
+          TextButton(
+            child: const Text('temp'),
+            onPressed: () async {
+              // send token to the server
+              var res = await Browser.get("/test1", queryParameters: {
+                "deviceId": await LocalSettings.getDeviceId(),
+                "dailyIndex": _dailyIndexController.text,
+              });
+            },
+          ),
+          const Divider(),
+          const ListTile(title: Text('training'), dense: true),
           ListTile(
             title: TextFormField(
               decoration: const InputDecoration(labelText: 'dailyIndex'),
@@ -28,41 +87,51 @@ class DebugPage extends StatelessWidget {
             ),
           ),
           ListTile(
-            title: const Text('fire training notification'),
-            onTap: () {
-              int dailyIndex = 0;
-              try {
-                dailyIndex = int.parse(_dailyIndexController.text);
-              } catch (e) {}
-
-              AwesomeNotifications().createNotification(
-                content: NotificationContent(
-                  id: 100000 + dailyIndex,
-                  channelKey: TrainingSystem.notificationChannel.channelKey!,
-                  title: 'debug training $dailyIndex',
-                  body: 'debug body',
-                  payload: {
-                    fieldDailyIndex: dailyIndex.toString(),
-                  },
-                ),
-              );
+            title: TextFormField(
+              decoration: const InputDecoration(labelText: 'trainingId'),
+              controller: _trainingIdController,
+            ),
+          ),
+          TextButton(
+            child: const Text('Run [onTest]'),
+            onPressed: () async {
+              int trainingId = int.parse(_trainingIdController.text);
+              Training.onTest({
+                'trainingId': trainingId,
+              });
             },
           ),
-          ListTile(
-            title: const Text('debugPrint trainingData'),
-            onTap: () async {
-              TrainingData? trainingData =
-                  await TrainingSystem.loadTrainingWords();
-
-              debugPrint('trainingData: $trainingData');
+          TextButton(
+            child: const Text('delete all practice instances'),
+            onPressed: () async {
+              await PracticeInstance.deleteAll();
+              debugPrint('Removed all practice instances.');
             },
           ),
-          ListTile(
-            title: const Text('delete trainingData'),
-            onTap: () {
-              TrainingSystem.removeTrainingWords();
+          TextButton(
+            child: const Text('delete all test instances'),
+            onPressed: () async {
+              await TestInstance.deleteAll();
+              debugPrint('Removed all test instances.');
             },
           ),
+          TextButton(
+            child: const Text('view trainingData'),
+            onPressed: () async {
+              int trainingId = int.parse(_trainingIdController.text);
+              TrainingData? trainingData = await TrainingData.get(trainingId);
+              debugPrint(trainingData.toString());
+            },
+          ),
+          TextButton(
+            child: const Text('delete trainingData'),
+            onPressed: () async {
+              int trainingId = int.parse(_trainingIdController.text);
+              TrainingData.delete(trainingId);
+              debugPrint('Deleted training data $trainingId');
+            },
+          ),
+          const Divider(),
           const ListTile(
             title: Text('words'),
             dense: true,
@@ -70,7 +139,6 @@ class DebugPage extends StatelessWidget {
           ListTile(
             title: const Text('add bulk words'),
             onTap: () async {
-              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
               List<Word> words = [
                 Word(
                   name: 'brainwash into',
@@ -119,50 +187,16 @@ class DebugPage extends StatelessWidget {
                 ),
               ];
 
-              await box.addAll(words);
+              await Word.addAll(words);
+
+              debugPrint('Added bulk words');
             },
           ),
           ListTile(
-            title: const Text('add bulk words 2'),
+            title: const Text('drop all words'),
             onTap: () async {
-              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-              List<Word> words = [];
-              for (int i = 0; i < 17; i++) {
-                Word word = Word(name: 'word$i', def: 'def$i', ex: 'ex$i');
-                if (i % 2 == 0) {
-                  word.mnemonic = 'mnemonic$i';
-                }
-                words.add(word);
-              }
-              await box.addAll(words);
-            },
-          ),
-          ListTile(
-            title: const Text('delete all words'),
-            onTap: () async {
-              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-              await box.deleteAll(box.keys);
-            },
-          ),
-          ListTile(
-            title: const Text('index test'),
-            onTap: () async {
-              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-              Set<int> result = Dictionary.defIndex.search('def');
-              for (int key in result) {
-                Word? word = box.get(key);
-                debugPrint('$key: ${word!.def}');
-              }
-            },
-          ),
-          ListTile(
-            title: const Text('view dictionary'),
-            onTap: () async {
-              Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-              for (dynamic key in box.keys) {
-                Word word = box.get(key)!;
-                debugPrint('key($key): $word');
-              }
+              await Word.deleteAll();
+              debugPrint('deleted all words');
             },
           ),
         ],
