@@ -1,41 +1,33 @@
 - todo
   - notification
     - On tapping consolidated notifications?
-  - conceive a way of revisiting practice and test
-  - training system
-    - introduce training id
-    - check if validation date is properly set(currently it seems wrong)
-  - log system
-  - suppress 'Not found' on ask word page when typing
-    - It seems the plugin must be replaced.
+  - documentation
+  - Replace widgets with better ones
+    - flutter_typeahead (During the loading, only 'not found' is shown)
+    - day_night_time_picker (unhandy.. better to get it back to the original one)
   - animation
+  - In ask word widget, display the correct/wrong clearly as askDef widget does. Show the target word like askDef does?
+  - replace all 'loading' with CircularProgressIndicator
   - word/idiom auto complete with dictionary APIs
     - offline dictionary
       - https://github.com/wordset/wordset-dictionary
-  - reschedule again after reboot
-    - user need to fire the app once for scheduling for now
-
+  - reschedule the training as timezone changes
+  
 - considerations
-  - training system
-    - set the training time range instead of starting time
-    - let the user adjust details such as # of words a day and so on too?
   - index
     - delete non-fulltext mode?
     - in full text mode, delete all whitespaces and put the word into the trie
       - but this will prevent searching `go up against` by `gua`
   - show level on dictionary, practice and test page?
-  
-    
 
-- server considerations
-  - precedence on managing synchronized devices?
-    - If the precedence exists, which one should be? the first device or mobile one?
-  - use websocket for real time update
-  - which DB?
-  - go or java?
-  - docker
-
-- to check
+- client db
+  - training_data
+  - practice_instances
+  - test_instances
+  - settings
+- server db
+  - words
+  - users
 
 - training system
   
@@ -54,19 +46,3 @@
   - Every word has a level(positive integer).
   - The initial and the minimum level is 1.
   - When the user correctly answers the quiz pertaining to a word, its level increases, while it decreases when he or she fails.
-
-// tmp
-
-- server db
-  - users
-    - uid
-    - email: string
-    - name: string
-  - dictionary
-    - wid       // word id
-    - name: string
-    - def: string
-    - ex: string
-    - mnemonic: string
-    - level: int >=1
-    - author: (*uid* in *users*)
