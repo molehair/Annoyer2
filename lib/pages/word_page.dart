@@ -1,17 +1,15 @@
 // Adding and updating a word
 
-import 'package:annoyer/database/dictionary.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/global.dart';
+import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/log.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 final _formKey = GlobalKey<FormState>();
 
 class WordPage extends StatelessWidget {
   final bool createMode; // true for adding, while false for updating a word
-  final int? storeKey;
   Word? word;
 
   final TextEditingController _nameController = TextEditingController();
@@ -22,7 +20,6 @@ class WordPage extends StatelessWidget {
   WordPage({
     Key? key,
     required this.createMode,
-    this.storeKey,
     this.word,
   }) : super(key: key);
 
@@ -34,8 +31,6 @@ class WordPage extends StatelessWidget {
     if (_formKey.currentState!.validate()) {
       //-- valid --//
       try {
-        Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-
         if (word == null) {
           // create a word instance
           word = Word(
@@ -46,8 +41,8 @@ class WordPage extends StatelessWidget {
             level: 1,
           );
 
-          // insert
-          await box.add(word!);
+          // add to the db
+          await Word.add(word!);
         } else {
           // reset level only if the word or definition has been changed
           if (word!.name != _nameController.text ||
@@ -62,7 +57,7 @@ class WordPage extends StatelessWidget {
           word!.mnemonic = _mnemonicController.text;
 
           // update
-          await box.put(word!.key, word!);
+          await Word.put(word!);
         }
 
         //-- success --//
@@ -74,7 +69,7 @@ class WordPage extends StatelessWidget {
 
         retval = true;
       } on Exception catch (e) {
-        debugPrint(e.toString());
+        logger.e('set', e);
       }
     }
     return retval;
@@ -82,27 +77,31 @@ class WordPage extends StatelessWidget {
 
   void delete(BuildContext context) async {
     try {
-      if (word!.key != null) {
-        Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-        box.delete(word!.key);
+      await Word.delete(word!.id!);
 
-        //-- success --//
-        // close the current page
-        Navigator.of(context).pop();
+      //-- success --//
+      // close the current page
+      Navigator.of(context).pop();
 
-        // show success
-        Global.showSuccess();
-      }
+      // show success
+      Global.showSuccess();
     } on Exception catch (e) {
-      debugPrint(e.toString());
+      logger.e('delete', e);
     }
+  }
+
+  /// RETURN null if `value` is not empty,
+  ///        'required field' message otherwise.
+  String? _nonEmptyValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return t.requiredField;
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final _title = createMode
-        ? AppLocalizations.of(context)!.newWord
-        : AppLocalizations.of(context)!.updateWord;
+    final _title = createMode ? t.newWord : t.updateWord;
     _nameController.text = createMode ? '' : word!.name;
     _defController.text = createMode ? '' : word!.def;
     _exController.text = createMode ? '' : word!.ex;
@@ -144,15 +143,10 @@ class WordPage extends StatelessWidget {
                     Icons.title_outlined,
                     size: 32,
                   ),
-                  labelText: AppLocalizations.of(context)!.wordOrIdiom + '*',
+                  labelText: t.wordOrIdiom + '*',
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context)!.requiredField;
-                  }
-                  return null;
-                },
+                validator: _nonEmptyValidator,
                 controller: _nameController,
                 autofocus: true,
                 textInputAction: TextInputAction.next,
@@ -164,15 +158,10 @@ class WordPage extends StatelessWidget {
                     Icons.short_text_outlined,
                     size: 32,
                   ),
-                  labelText: AppLocalizations.of(context)!.definition + '*',
+                  labelText: t.definition + '*',
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context)!.requiredField;
-                  }
-                  return null;
-                },
+                validator: _nonEmptyValidator,
                 controller: _defController,
                 maxLines: null,
                 textInputAction: TextInputAction.next,
@@ -184,15 +173,10 @@ class WordPage extends StatelessWidget {
                     Icons.notes_outlined,
                     size: 32,
                   ),
-                  labelText: AppLocalizations.of(context)!.example + '*',
+                  labelText: t.example + '*',
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context)!.requiredField;
-                  }
-                  return null;
-                },
+                validator: _nonEmptyValidator,
                 controller: _exController,
                 maxLines: null,
                 textInputAction: TextInputAction.next,
@@ -204,7 +188,7 @@ class WordPage extends StatelessWidget {
                     Icons.lightbulb_outline,
                     size: 32,
                   ),
-                  labelText: AppLocalizations.of(context)!.mnemonic,
+                  labelText: t.mnemonic,
                   // border: const OutlineInputBorder(borderSide: BorderSide()),
                 ),
                 controller: _mnemonicController,
