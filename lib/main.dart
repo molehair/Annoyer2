@@ -1,52 +1,70 @@
+import 'package:annoyer/background_worker.dart';
+import 'package:annoyer/database/database.dart';
+import 'package:annoyer/notification_center.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'database/database.dart';
-import 'global.dart';
-import 'notification_manager.dart';
-import 'pages/home_page.dart';
-import 'training_system.dart';
 
-void main() {
+import 'database/word.dart';
+import 'firebase_options.dart';
+import 'global.dart';
+import 'i18n/strings.g.dart';
+import 'log.dart';
+import 'pages/home_page.dart';
+import 'sync.dart';
+import 'training.dart';
+
+Future<void> initialization() async {
+  // The initialization order must be maintained.
+
+  // local database
+  await Database.initialization();
+  logger.i('Initialized Local Database');
+
+  // firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  logger.i('Initialized Firebase');
+
+  // background worker
+  await BackgroundWorker.initialization();
+  logger.i('Initialized Background worker');
+
+  // sync
+  await Sync.initialization();
+  logger.i('Initialized Sync');
+
+  // notification center
+  await NotificationCenter.initialization();
+  logger.i('Initialized Notification center');
+
+  // word
+  await Word.initialization();
+  logger.i('Initialized Word');
+
+  // training system
+  await Training.initialization();
+  logger.i('Initialized Training');
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const MyApp());
+  LocaleSettings.useDeviceLocale();
+  runApp(TranslationProvider(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  static var initialization = _init();
-
-  static _init() async {
-    // The initialization order must be maintained.
-
-    // notification system
-    await NotificationManager.initialization();
-
-    // database
-    await DB.initialization();
-
-    // training system
-    await TrainingSystem.initialization();
-  }
+  static final _initialization = initialization();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Annoyer',
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en', ''), // English, no country code
-        // Locale('ko', ''),
-      ],
       theme: ThemeData(
-        primarySwatch: Colors.teal,
+        primarySwatch: Colors.blueGrey,
         // fontFamily: 'Georgia',
         textTheme: const TextTheme(
           headline1: TextStyle(fontSize: 72.0, fontWeight: FontWeight.bold),
@@ -56,7 +74,7 @@ class MyApp extends StatelessWidget {
       ),
       navigatorKey: Global.navigatorKey,
       home: FutureBuilder(
-        future: initialization,
+        future: _initialization,
         builder: (context, snapshot) {
           // Check for errors
           if (snapshot.hasError) {
@@ -66,8 +84,6 @@ class MyApp extends StatelessWidget {
 
           // Once complete, show your application
           if (snapshot.connectionState == ConnectionState.done) {
-            // ordinary launch
-            debugPrint('ordinary launch');
             return const HomePage();
           }
 
