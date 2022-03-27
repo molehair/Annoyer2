@@ -1,8 +1,5 @@
 {
   "requiredField": "Please fill this field.",
-  "@requiredField": {
-    "description": "Mandatory fields in a form."
-  },
   "word": "Word",
   "name": "Name",
   "definition": "Definition",
@@ -28,9 +25,6 @@
   "dictionary": "Dictionary",
   "settings": "Settings",
   "searchDefinition": "Search definition",
-  "@searchDefinition": {
-    "description": "the explanatory remark for the user to search a definition in the test page"
-  },
   "notFound": "Not found",
   "loading": "Loading",
   "giveUp": "Give up",
@@ -39,16 +33,29 @@
   "viewDefinition": "View definition",
   "viewExample": "View example",
   "viewMnemonic": "View mnemonic",
-  "totalNumWords": "Total $",
-  "@totalNumWords": {
-    "description": "on the dictionary page. $ should be replaced by actual word count"
+  "totalNumWords": {
+    "zero": "No word",
+    "one": "Total $count word",
+    "two": "Total $count words",
+    "many": "Total $count words",
+    "other": "Total $count words"
   },
-  "wordsSelected": "$ selected",
-  "@wordsSelected": {
-    "description": "on the dictionary page. $ should be replaced by actual word count"
+  "wordsSelected": {
+    "zero": "No word selected",
+    "one": "$count word selected",
+    "two": "$count words selected",
+    "many": "$count words selected",
+    "other": "$count words selected"
   },
   "atLeast4WordsRequired": "At least four words are required.",
   "storagePermissionRequired": "Storage permission is required.",
   "idiom": "Idiom",
-  "wordOrIdiom": "Word or Idiom"
+  "wordOrIdiom": "Word or Idiom",
+  "practiceChannelDescription": "Practice makes you great.",
+  "testChannelDescription": "Test makes you perfect.",
+  "training": "Training",
+  "askDefinition": "What is the definition of",
+  "askWord": "Fill in the blanks in the following sentence.",
+  "dataManagement": "Data management",
+  "sync": "Sync"
 }
