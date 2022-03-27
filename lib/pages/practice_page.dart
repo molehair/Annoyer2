@@ -2,64 +2,66 @@
 
 import 'dart:math';
 
-import 'package:annoyer/database/dictionary.dart';
+import 'package:annoyer/database/practice_instance.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/training_data.dart';
-import 'package:annoyer/training_system.dart';
+import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 class PracticePage extends StatelessWidget {
-  PracticePage({Key? key, required this.dailyIndex})
-      : _loader = _load(dailyIndex),
-        super(key: key);
+  PracticePage({
+    Key? key,
+    required this.inst,
+  })  : _loader = _load(inst),
+        super(key: key) {
+    // remove instance after build
+    WidgetsBinding.instance!.addPostFrameCallback((_) {
+      PracticeInstance.delete(inst.id!);
+    });
+  }
 
-  final int dailyIndex;
+  final PracticeInstance inst;
   final Future<List<Word>> _loader;
 
-  /// select the words to show and return them as a list
-  static Future<List<Word>> _load(int dailyIndex) async {
-    final List<Word> words = [];
-
+  /// Load the words to show
+  /// RETURN
+  /// 1. the loaded words if they're valid
+  /// 2. empty list, otherwise
+  static Future<List<Word>> _load(PracticeInstance inst) async {
     // load training words
-    TrainingData? trainingData = await TrainingSystem.loadTrainingWords();
+    TrainingData? trainingData = await TrainingData.get(inst.trainingId);
 
     // Validation check.
-    if (trainingData == null ||
-        trainingData.expiration.isBefore(DateTime.now())) {
+    if (trainingData == null || !trainingData.isValid()) {
       //-- invalid --//
-      // make one
-      trainingData = await TrainingSystem.createTrainingData();
-
-      // save if successfully made
-      if (trainingData != null) {
-        await TrainingSystem.saveTrainingWords(trainingData);
-      }
+      return [];
     }
 
-    if (trainingData != null) {
-      // Retrieve the words to show
-      // choose ((dailyIndex * numTrainingWordsPerAlarm) +0) % numTrainingWords,
-      //        ((dailyIndex * numTrainingWordsPerAlarm) +1) % numTrainingWords,
-      //        ((dailyIndex * numTrainingWordsPerAlarm) +2) % numTrainingWords,
-      //        ... ,
-      Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-      for (int i = 0;
-          i < min(numTrainingWordsPerAlarm, trainingData.wordKeys.length);
-          i++) {
-        // compute the index
-        int j = (dailyIndex * numTrainingWordsPerAlarm + i) %
-            trainingData.wordKeys.length;
+    // Retrieve the words to show
+    // choose ((dailyIndex * numTrainingWordsPerAlarm) +0) % numTrainingWords,
+    //        ((dailyIndex * numTrainingWordsPerAlarm) +1) % numTrainingWords,
+    //        ((dailyIndex * numTrainingWordsPerAlarm) +2) % numTrainingWords,
+    //        ... ,
+    List<Word> words = [];
+    for (int i = 0;
+        i <
+            min(
+              Training.numTrainingWordsPerAlarm,
+              trainingData.wordIds.length,
+            );
+        i++) {
+      // compute the index
+      int j = (inst.dailyIndex * Training.numTrainingWordsPerAlarm + i) %
+          trainingData.wordIds.length;
 
-        // get a word
-        dynamic key = trainingData.wordKeys[j];
-        Word? word = box.get(key);
+      // get a word
+      dynamic key = trainingData.wordIds[j];
+      Word? word = await Word.get(key);
 
-        // Check if the word wasn't deleted.
-        if (word != null) {
-          words.add(word);
-        }
+      // Check if the word wasn't deleted.
+      if (word != null) {
+        words.add(word);
       }
     }
 
@@ -77,138 +79,138 @@ class PracticePage extends StatelessWidget {
           return const Text('SomethingWentWrong();');
         }
 
-        // Once complete, show your application
+        // set body
+        Widget body;
+        int tabLength = 1;
         if (snapshot.connectionState == ConnectionState.done) {
-          // make views for each tab
-          final List<Word> words = snapshot.data as List<Word>;
+          // read words
+          List<Word> words = snapshot.data as List<Word>;
+
+          // set tab length
+          tabLength = words.length;
 
           if (words.isNotEmpty) {
             // If there is at least one word to show
-            return DefaultTabController(
-              length: words.length,
-              child: Scaffold(
-                appBar: AppBar(
-                  title: Text(AppLocalizations.of(context)!.practice),
-                ),
-                body: TabBarView(
-                  // controller: _tabController,
-                  children: words
-                      .map(
-                        (word) => ListView(
-                          children: [
-                            ListTile(
-                              title: Center(
-                                child: Text(
-                                  word.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20),
-                                ),
-                              ),
-                            ),
-                            Card(
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    title: Text(
-                                      AppLocalizations.of(context)!.definition,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    dense: true,
-                                  ),
-                                  ListTile(
-                                    contentPadding:
-                                        const EdgeInsets.fromLTRB(40, 0, 20, 0),
-                                    title: Text(word.def),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Card(
-                              child: Column(
-                                children: [
-                                  ListTile(
-                                    title: Text(
-                                      AppLocalizations.of(context)!.example,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    dense: true,
-                                  ),
-                                  ListTile(
-                                    contentPadding:
-                                        const EdgeInsets.fromLTRB(40, 0, 20, 0),
-                                    title: Text(word.ex),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Visibility(
-                              visible:
-                                  word.mnemonic != '' && word.mnemonic != null,
-                              child: Card(
-                                child: Column(
-                                  children: [
-                                    ListTile(
-                                      title: Text(
-                                        AppLocalizations.of(context)!.mnemonic,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      dense: true,
-                                    ),
-                                    ListTile(
-                                      contentPadding: const EdgeInsets.fromLTRB(
-                                          40, 0, 20, 0),
-                                      title: Text(word.mnemonic ?? ''),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      .toList(),
-                ),
-                bottomNavigationBar: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [TabPageSelector()],
+            body = showWords(words);
+          } else {
+            // If there is no word to show because they're all deleted
+            body = noWordToShow();
+          }
+        } else {
+          // loading widget
+          body = const Center(child: CircularProgressIndicator());
+        }
+
+        return DefaultTabController(
+          length: tabLength,
+          child: Scaffold(
+            appBar: AppBar(title: Text(t.practice)),
+            body: body,
+            bottomNavigationBar: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [TabPageSelector()],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+Widget showWords(List<Word> words) {
+  return TabBarView(
+    children: words
+        .map(
+          (word) => ListView(
+            children: [
+              ListTile(
+                title: Center(
+                  child: Text(
+                    word.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 20),
                   ),
                 ),
               ),
-            );
-          } else {
-            // If there is no word to show because they're all deleted
-            return Scaffold(
-              appBar: AppBar(
-                title: Text(AppLocalizations.of(context)!.practice),
-              ),
-              body: Center(
+              Card(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  // crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 80,
+                    ListTile(
+                      title: Text(
+                        t.definition,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      dense: true,
                     ),
-                    Text(
-                      AppLocalizations.of(context)!.noWordToShow,
-                      style: const TextStyle(fontSize: 20),
+                    ListTile(
+                      contentPadding: const EdgeInsets.fromLTRB(40, 0, 20, 0),
+                      title: Text(word.def),
                     ),
                   ],
                 ),
               ),
-            );
-          }
-        }
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        t.example,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      dense: true,
+                    ),
+                    ListTile(
+                      contentPadding: const EdgeInsets.fromLTRB(40, 0, 20, 0),
+                      title: Text(word.ex),
+                    ),
+                  ],
+                ),
+              ),
+              Visibility(
+                visible: word.mnemonic != '' && word.mnemonic != null,
+                child: Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: Text(
+                          t.mnemonic,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        dense: true,
+                      ),
+                      ListTile(
+                        contentPadding: const EdgeInsets.fromLTRB(40, 0, 20, 0),
+                        title: Text(word.mnemonic ?? ''),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )
+        .toList(),
+  );
+}
 
-        return const Text('Loading...');
-      },
-    );
-  }
+Widget noWordToShow() {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      // crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.error_outline,
+          size: 80,
+        ),
+        Text(
+          t.noWordToShow,
+          style: const TextStyle(fontSize: 20),
+        ),
+      ],
+    ),
+  );
 }
