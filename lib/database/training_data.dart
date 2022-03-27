@@ -1,27 +1,120 @@
-// A box for containing training data
+// A struct for containing training data
 
-// The hive_generator package can automatically generate TypeAdapters for almost any class.
-// 1. To generate a TypeAdapter for a class, annotate it with @HiveType and provide a typeId (between 0 and 223)
-// 2. Annotate all fields which should be stored with @HiveField
-// 3. Run build task `flutter packages pub run build_runner build`
-// 4. Register the generated adapter
+/// isar code gen: flutter pub run build_runner build
 
-import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:convert';
+
+import 'package:isar/isar.dart';
+
+import 'database.dart';
 
 part 'training_data.g.dart';
 
-@HiveType(typeId: 2)
+@Collection()
 class TrainingData {
-  static const String boxName = 'training';
+  //---------------------------------------------------------------//
+  //        instance variables
+  //---------------------------------------------------------------//
 
-  // the box key
-  static const String key = 'training';
+  @Id()
+  int? id;
 
-  @HiveField(0)
+  List<int> wordIds;
   DateTime expiration;
 
-  @HiveField(1)
-  List<dynamic> wordKeys;
+  //---------------------------------------------------------------//
+  //        static variables
+  //---------------------------------------------------------------//
 
-  TrainingData({required this.expiration, required this.wordKeys});
+  //---------------------------------------------------------------//
+  //        exported methods
+  //---------------------------------------------------------------//
+
+  TrainingData({
+    this.id,
+    required this.wordIds,
+    required this.expiration,
+  });
+
+  /// RETURN true if the training data is good to use
+  bool isValid() {
+    // expiration check
+    return expiration.isAfter(DateTime.now());
+  }
+
+  TrainingData.fromMap(Map<String, Object?> map)
+      : id = map['id'] as int,
+        wordIds = List.castFrom(map['wordIds'] as List),
+        expiration = map['expiration'] as DateTime;
+
+  Map<String, Object?> toMap() {
+    Map<String, Object?> map = {
+      'wordIds': wordIds,
+      'expiration': expiration,
+    };
+    if (id != null) {
+      map['id'] = id!;
+    }
+    return map;
+  }
+
+  TrainingData.fromJson(String jsonString)
+      : this.fromMap(jsonDecode(
+          jsonString,
+          reviver: (key, value) => key == 'expiration'
+              ? DateTime.fromMicrosecondsSinceEpoch(value as int)
+              : value,
+        ));
+
+  String toJson() {
+    return jsonEncode(
+      toMap(),
+      toEncodable: (item) =>
+          item is DateTime ? item.microsecondsSinceEpoch : item,
+    );
+  }
+
+  /// Get an item
+  static Future<TrainingData?> get(int id) {
+    return Database.isar.trainingDatas.get(id);
+  }
+
+  /// Get all items
+  static Future<List<TrainingData>> getAll() {
+    return Database.isar.trainingDatas.where().findAll();
+  }
+
+  /// Add an item
+  static Future<void> add(TrainingData trainingData) {
+    trainingData.id = null;
+    return Database.isar.writeTxn((isar) async {
+      await Database.isar.trainingDatas.put(trainingData);
+    });
+  }
+
+  /// Save an item with id
+  static Future<void> put(TrainingData trainingData) {
+    assert(trainingData.id != null);
+    return Database.isar.writeTxn((isar) async {
+      await Database.isar.trainingDatas.put(trainingData);
+    });
+  }
+
+  /// Delete an item
+  static Future<void> delete(int id) async {
+    return Database.isar.writeTxn((isar) async {
+      await Database.isar.trainingDatas.delete(id);
+    });
+  }
+
+  /// Delete all items with [ids]
+  static Future<void> deleteAll(List<int> ids) async {
+    return Database.isar.writeTxn((isar) async {
+      await Database.isar.trainingDatas.deleteAll(ids);
+    });
+  }
+
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
 }

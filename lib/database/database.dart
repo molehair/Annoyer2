@@ -1,20 +1,56 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:annoyer/database/local_settings.dart';
+import 'package:annoyer/database/log_item.dart';
+import 'package:annoyer/database/practice_instance.dart';
+import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_data.dart';
+import 'package:annoyer/database/word.dart';
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'word.dart';
-import 'settings.dart';
-import 'training_data.dart';
-import 'dictionary.dart';
+class Database {
+  //---------------------------------------------------------------//
+  //        instance variables
+  //---------------------------------------------------------------//
 
-class DB {
+  //---------------------------------------------------------------//
+  //        static variables
+  //---------------------------------------------------------------//
+
+  /// Initialized this class?
+  static bool _inited = false;
+
+  // isar instance
+  static late Isar isar;
+
+  //---------------------------------------------------------------//
+  //        exported methods
+  //---------------------------------------------------------------//
+
   static Future<void> initialization() async {
-    await Hive.initFlutter();
+    // init only once
+    if (_inited) {
+      return;
+    }
 
-    // adapters
-    Hive.registerAdapter(SettingsAdapter());
-    Hive.registerAdapter(WordAdapter());
-    Hive.registerAdapter(TrainingDataAdapter());
+    final dir = await getApplicationSupportDirectory();
 
-    // dictionary
-    await Dictionary.initialization();
+    isar = await Isar.open(
+      schemas: [
+        WordSchema,
+        PracticeInstanceSchema,
+        TestInstanceSchema,
+        TrainingDataSchema,
+        LogItemSchema,
+        LocalSettingsSchema,
+      ],
+      directory: dir.path,
+    );
+
+    // mark as finished initialization
+    _inited = true;
   }
+
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
 }
