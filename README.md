@@ -38,8 +38,6 @@ Your annoying friend for learning vocabulary
 
 ## Build
 
-If you want to set your own Annoyer server, fill its url in `lib/config.dart`.
-
 ```bash
 flutter pub get			# get packages
 flutter build apk
