@@ -1,63 +1,71 @@
-import 'package:annoyer/database/dictionary.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/global.dart';
+import 'package:annoyer/i18n/strings.g.dart';
 import 'package:annoyer/pages/word_page.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-class DictionaryPage extends StatelessWidget {
+class DictionaryPage extends StatefulWidget {
   const DictionaryPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Hive.openBox<Word>(Dictionary.boxName),
-      builder: (context, snapshot) {
-        // Check for errors
-        if (snapshot.hasError) {
-          debugPrint(snapshot.error.toString());
-          return const Text('SomethingWentWrong();');
-        }
-
-        // Once complete, show your application
-        if (snapshot.connectionState == ConnectionState.done) {
-          return _DictionaryPageMain(box: snapshot.data as Box<Word>);
-        }
-
-        return const Text('Loading...');
-      },
-    );
-  }
+  _DictionaryPageState createState() => _DictionaryPageState();
 }
 
-class _DictionaryPageMain extends StatefulWidget {
-  const _DictionaryPageMain({
-    Key? key,
-    required this.box,
-  }) : super(key: key);
-
-  final Box<Word> box;
-
-  @override
-  __DictionaryPageMainState createState() => __DictionaryPageMainState();
-}
-
-class __DictionaryPageMainState extends State<_DictionaryPageMain>
+class _DictionaryPageState extends State<DictionaryPage>
     with AutomaticKeepAliveClientMixin {
+  // mode flags
   bool _searchMode = false;
   bool _selectionMode = false;
-  final Set<Word> _selections = {};
+
   final TextEditingController _searchController = TextEditingController();
-  final List<Word> words = [];
+
+  final Set<int> _selectedIds = {};
+  List<Word> _allWords = [];
+  final List<Word> _searchWords = [];
+
+  @override
+  void initState() {
+    // set change listeners
+    Word.getStream().listen(_onWordChange);
+    _searchController.addListener(_onSearchTextChange);
+
+    // initial refresh
+    _onWordChange();
+
+    super.initState();
+  }
+
+  /// update all words
+  void _onWordChange([_]) async {
+    _allWords = await Word.getAll();
+    _allWords.sort((a, b) => (a.name.compareTo(b.name)));
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// update word list on searching
+  void _onSearchTextChange() async {
+    var ids = Word.nameIndex.search(_searchController.text.trim());
+    var wordsBeforeValid = await Word.gets(ids);
+    _searchWords.clear();
+    for (Word? word in wordsBeforeValid) {
+      if (word != null) {
+        _searchWords.add(word);
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   void _enableSelectionMode(Word? initialSelection) {
     // clear the previous selections
-    _selections.clear();
+    _selectedIds.clear();
 
     // add the initial selection
     if (initialSelection != null) {
-      _selections.add(initialSelection);
+      _selectedIds.add(initialSelection.id!);
     }
     setState(() {
       _selectionMode = true;
@@ -65,235 +73,213 @@ class __DictionaryPageMainState extends State<_DictionaryPageMain>
   }
 
   void _disableSelectionMode() {
+    _selectedIds.clear();
     setState(() {
       _selectionMode = false;
     });
   }
 
-  Future<void> _deleteWords() async {
-    return widget.box.deleteAll(_selections.map((word) => word.key));
-  }
-
-  /// If `value` is true, then `word` is selected.
-  /// If `value` is false, then `word` is deselected.
-  /// If `value` is null, then toggle the selection state of `word`.
+  /// If [selected] is true, then `word` is selected.
+  /// If [selected] is false, then `word` is deselected.
+  /// If [selected] is null, then toggle the selection state of `word`.
   void _updateSelection(Word word, bool? selected) {
+    int id = word.id!;
     if (selected == null) {
-      if (_selections.contains(word)) {
-        _selections.remove(word);
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
       } else {
-        _selections.add(word);
+        _selectedIds.add(id);
       }
     } else if (selected) {
-      _selections.add(word);
+      _selectedIds.add(id);
     } else {
-      _selections.remove(word);
+      _selectedIds.remove(id);
     }
     setState(() {});
+  }
+
+  /// Delete selected words
+  Future<void> _deleteWords() {
+    return Word.deletes(_selectedIds);
+  }
+
+  void _enableSearchMode() {
+    setState(() {
+      _searchMode = true;
+    });
+  }
+
+  void _disableSearchMode() {
+    setState(() {
+      _searchMode = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
-    return ValueListenableBuilder(
-      valueListenable: widget.box.listenable(),
-      builder: (context, Box<Word> box, widget) {
-        // clear outdated words
-        words.clear();
+    // determine word list to display
+    List<Word> words = _searchMode ? _searchWords : _allWords;
 
-        // prepare list to show depending on the search mode
-        Iterable<dynamic> keys = _searchMode
-            ? Dictionary.nameIndex.search(_searchController.text.trim())
-            : box.keys;
-
-        // fetch word info
-        for (int key in keys) {
-          Word word = box.get(key)!;
-          word.key = key;
-          words.add(word);
-        }
-
-        // sort
-        words.sort((Word word1, Word word2) =>
-            word1.name.toLowerCase().compareTo(word2.name.toLowerCase()));
-
-        // floating buttons
-        Widget floatingActionButtons;
-        if (_selectionMode) {
-          floatingActionButtons = Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton(
-                onPressed: () {
-                  if (_selections.length == words.length) {
-                    // deselect all
-                    _selections.clear();
-                  } else {
-                    // select all
-                    _selections.addAll(words);
-                  }
-                  setState(() {});
-                },
-                child: const Icon(Icons.select_all_outlined),
-                heroTag: null,
-              ),
-              const SizedBox(height: 16),
-              FloatingActionButton(
-                onPressed: () async {
-                  await _deleteWords();
-                  _disableSelectionMode();
-                  Global.showSuccess();
-                },
-                child: const Icon(Icons.delete_outlined),
-                heroTag: null,
-              ),
-            ],
-          );
-        } else {
-          floatingActionButtons = FloatingActionButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => WordPage(createMode: true),
-              ),
-            ),
-            child: const Icon(Icons.add),
+    // floating buttons
+    Widget floatingActionButtons;
+    if (_selectionMode) {
+      floatingActionButtons = Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              if (_selectedIds.length == words.length) {
+                // deselect all
+                _selectedIds.clear();
+              } else {
+                // select all
+                _selectedIds.addAll(words.map((e) => e.id!));
+              }
+              setState(() {});
+            },
+            child: const Icon(Icons.select_all_outlined),
             heroTag: null,
-          );
-        }
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: () async {
+              await _deleteWords();
+              _disableSelectionMode();
+              Global.showSuccess();
+            },
+            child: const Icon(Icons.delete_outlined),
+            heroTag: null,
+          ),
+        ],
+      );
+    } else {
+      floatingActionButtons = FloatingActionButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => WordPage(createMode: true),
+          ),
+        ),
+        child: const Icon(Icons.add),
+        heroTag: null,
+      );
+    }
 
-        // title
-        String title;
-        if (_selectionMode) {
-          // number of selected words
-          title = AppLocalizations.of(context)!
-              .wordsSelected
-              .replaceFirst('\$', _selections.length.toString());
+    // wordCount
+    String wordCount = _selectionMode
+        ?
+        // number of selected words
+        t.wordsSelected(count: _selectedIds.length)
+        :
+        // number of total words
+        t.totalNumWords(count: words.length);
+
+    return WillPopScope(
+      onWillPop: () {
+        if (_searchMode || _selectionMode) {
+          // If in search or selection mode,
+          // go back to non-search mode, not exit app.
+          _disableSearchMode();
+          _disableSelectionMode();
+          return Future.value(false);
         } else {
-          // number of total words
-          title = AppLocalizations.of(context)!
-              .totalNumWords
-              .replaceFirst('\$', words.length.toString());
+          // not in search mode: normal exit
+          return Future.value(true);
         }
-
-        return WillPopScope(
-          onWillPop: () {
-            if (_searchMode || _selectionMode) {
-              // If in search or selection mode,
-              // go back to non-search mode, not exit app.
-              setState(() {
-                _searchMode = _selectionMode = false;
-              });
-              return Future.value(false);
-            } else {
-              // not in search mode: normal exit
-              return Future.value(true);
-            }
-          },
-          child: Scaffold(
-            appBar: AppBar(
-                leading: _searchMode
-                    ? IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_outlined),
-                        onPressed: () => setState(() {
-                          _searchMode = false;
-                        }),
-                      )
-                    : null,
-                title: _searchMode
-                    ? TextField(
-                        controller: _searchController,
-                        autofocus: true,
-                        onChanged: (_) => setState(() {}),
-                        // decoration: InputDecoration(
-                        //   fillColor: Colors.white,
-                        //   // fillColor: Theme.of(context).backgroundColor,
-                        // ),
-                        cursorColor: Colors.white,
-                        style: const TextStyle(color: Colors.white))
-                    : Text(AppLocalizations.of(context)!.dictionary),
-                actions: <Widget>[
-                  _searchMode
-                      ? IconButton(
-                          icon: const Icon(Icons.close, size: 26.0),
-                          onPressed: () => setState(() {
-                            _searchController.clear();
-                          }),
-                        )
-                      : IconButton(
-                          icon: const Icon(Icons.search, size: 26.0),
-                          onPressed: () => setState(() {
-                            _searchMode = true;
-                          }),
-                        ),
-                ]),
-            body: ListView.builder(
-              itemCount: words.length + 1,
-              itemBuilder: (context, index) {
-                Widget widget;
-                if (index == 0) {
-                  //-- header --//
-                  widget = ListTile(
-                    title: Text(
-                      title,
-                      textAlign: TextAlign.center,
+      },
+      child: Scaffold(
+        appBar: AppBar(
+            leading: _searchMode
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_outlined),
+                    onPressed: _disableSearchMode,
+                  )
+                : null,
+            title: _searchMode
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    onChanged: (_) => setState(() {}),
+                    // decoration: InputDecoration(
+                    //   fillColor: Colors.white,
+                    //   // fillColor: Theme.of(context).backgroundColor,
+                    // ),
+                    cursorColor: Colors.white,
+                    style: const TextStyle(color: Colors.white))
+                : Text(t.dictionary),
+            actions: <Widget>[
+              _searchMode
+                  ? IconButton(
+                      icon: const Icon(Icons.close, size: 26.0),
+                      onPressed: () => setState(() {
+                        _searchController.clear();
+                      }),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.search, size: 26.0),
+                      onPressed: _enableSearchMode,
                     ),
-                    dense: true,
-                  );
-                } else {
-                  //-- data --//
-                  // exclude "total" item
-                  index--;
+            ]),
+        body: ListView.builder(
+          itemCount: words.length + 1,
+          itemBuilder: (context, index) {
+            Widget widget;
+            if (index == 0) {
+              //-- header --//
+              widget = ListTile(
+                title: Text(wordCount, textAlign: TextAlign.center),
+                dense: true,
+              );
+            } else {
+              //-- data --//
+              // exclude title tile
+              index--;
 
-                  Word word = words[index];
-                  bool idiom = word.name.trim().contains(' ');
-                  Widget leading;
+              Word word = words[index];
+              bool idiom = word.name.trim().contains(' ');
+              Widget leading;
+              if (_selectionMode) {
+                leading = Checkbox(
+                  value: _selectedIds.contains(word.id!),
+                  onChanged: (bool? value) => _updateSelection(word, value),
+                );
+              } else {
+                leading = CircleAvatar(
+                  child: Text(
+                    idiom ? t.idiom : t.word,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  backgroundColor:
+                      idiom ? Theme.of(context).secondaryHeaderColor : null,
+                );
+              }
+              widget = ListTile(
+                leading: leading,
+                title: Text(word.name),
+                // subtitle: Text(word.ex),
+                onTap: () {
                   if (_selectionMode) {
-                    leading = Checkbox(
-                      value: _selections.contains(word),
-                      onChanged: (bool? value) => _updateSelection(word, value),
-                    );
+                    _updateSelection(word, null);
                   } else {
-                    leading = CircleAvatar(
-                      child: Text(
-                        idiom
-                            ? AppLocalizations.of(context)!.idiom
-                            : AppLocalizations.of(context)!.word,
-                        style: const TextStyle(fontSize: 12),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => WordPage(
+                          createMode: false,
+                          word: word,
+                        ),
                       ),
-                      backgroundColor:
-                          idiom ? Theme.of(context).secondaryHeaderColor : null,
                     );
                   }
-                  widget = ListTile(
-                    leading: leading,
-                    title: Text(word.name),
-                    // subtitle: Text(word.ex),
-                    onTap: () {
-                      if (_selectionMode) {
-                        _updateSelection(word, null);
-                      } else {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => WordPage(
-                              createMode: false,
-                              storeKey: word.key,
-                              word: word,
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    onLongPress: () => _enableSelectionMode(word),
-                  );
-                }
-                return widget;
-              },
-            ),
-            floatingActionButton: floatingActionButtons,
-          ),
-        );
-      },
+                },
+                onLongPress: () => _enableSelectionMode(word),
+              );
+            }
+            return widget;
+          },
+        ),
+        floatingActionButton: floatingActionButtons,
+      ),
     );
   }
 
