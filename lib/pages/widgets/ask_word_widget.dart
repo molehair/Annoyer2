@@ -1,25 +1,22 @@
-import 'package:annoyer/database/dictionary.dart';
+import 'package:annoyer/database/question_ask_word.dart';
+import 'package:annoyer/database/test_instance.dart';
 import 'package:annoyer/database/word.dart';
-import 'package:annoyer/question.dart';
-import 'package:annoyer/training_system.dart';
+import 'package:annoyer/database/question.dart';
+import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/log.dart';
+import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-
-enum _Status {
-  waiting,
-  correct,
-  wrong,
-}
 
 class AskWordWidget extends StatefulWidget {
+  final int testInstKey;
+  final QuestionAskWord question;
+
   const AskWordWidget({
     Key? key,
+    required this.testInstKey,
     required this.question,
   }) : super(key: key);
-
-  final Question question;
 
   @override
   _AskWordWidgetState createState() => _AskWordWidgetState();
@@ -27,38 +24,58 @@ class AskWordWidget extends StatefulWidget {
 
 class _AskWordWidgetState extends State<AskWordWidget>
     with AutomaticKeepAliveClientMixin {
-  _Status _status = _Status.waiting;
-  Word? _choice;
   bool _viewMnemonic = false;
   bool _viewDef = false;
 
-  void _changeStatus(_Status newStatus) {
-    setState(() {
-      _status = newStatus;
-    });
-  }
+  void _grade(Word? chosen) async {
+    String? answer = chosen?.name;
 
-  void _grade(Word? choice) async {
-    _choice = choice;
-    if (choice == null || choice.name != widget.question.word.name) {
-      await TrainingSystem.grade(widget.question.word, false);
-      _changeStatus(_Status.wrong);
+    // grade
+    if (answer != null && answer == widget.question.word.name) {
+      //-- correct --//
+      // set question state
+      widget.question.state = QuestionState.correct;
+
+      // update word level
+      // As this takes long time with firestore, do asynchronously
+      Training.grade(widget.question.word, true);
     } else {
-      await TrainingSystem.grade(widget.question.word, true);
-      _changeStatus(_Status.correct);
+      //-- wrong --//
+      // set question state
+      widget.question.state = QuestionState.wrong;
+
+      // update word level
+      // As this takes long time with firestore, do asynchronously
+      Training.grade(widget.question.word, false);
     }
+
+    // update to db
+    widget.question.usersAnswer = answer;
+    TestInstance? inst = await TestInstance.get(widget.testInstKey);
+    if (inst != null) {
+      inst.questions[widget.question.index] = widget.question;
+      await TestInstance.put(inst);
+    } else {
+      logger.e('Unable to get test instance with key ${widget.testInstKey}.');
+    }
+
+    // update the current page
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListView(
         children: [
           const SizedBox(height: 24),
+
+          // title
           Text(
-            widget.question.question,
+            t.askWord,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -66,17 +83,21 @@ class _AskWordWidgetState extends State<AskWordWidget>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 36),
+
+          // word
           Text(
             widget.question.blankfiedEx,
             style: const TextStyle(fontSize: 20),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 36),
+
+          // answer field
           Visibility(
-            visible: _status == _Status.waiting,
+            visible: widget.question.state == QuestionState.intertermined,
             child: TypeAheadField(
               textFieldConfiguration: TextFieldConfiguration(
-                enabled: _status == _Status.waiting,
+                // enabled: widget.question.state == QuestionState.intertermined,
                 // autofocus: true,
                 style: DefaultTextStyle.of(context)
                     .style
@@ -94,14 +115,13 @@ class _AskWordWidgetState extends State<AskWordWidget>
               ),
               suggestionsCallback: (pattern) async {
                 // search definitions from the index
-                final Set<int> suggestionKeys =
-                    Dictionary.nameIndex.search(pattern.trim());
+                final Set<int> suggestionIds =
+                    Word.nameIndex.search(pattern.trim());
 
                 // fetch definitions
                 final List<Word> words = [];
-                final Box<Word> box = await Hive.openBox(Dictionary.boxName);
-                for (int key in suggestionKeys) {
-                  Word? word = box.get(key);
+                for (int id in suggestionIds) {
+                  Word? word = await Word.get(id);
                   if (word != null) {
                     words.add(word);
                   }
@@ -117,12 +137,12 @@ class _AskWordWidgetState extends State<AskWordWidget>
                 );
               },
               onSuggestionSelected: _grade,
-              loadingBuilder: (context) => ListTile(
-                title: Text(AppLocalizations.of(context)!.loading),
+              loadingBuilder: (context) => const ListTile(
+                title: Center(child: CircularProgressIndicator()),
               ),
               noItemsFoundBuilder: (context) => ListTile(
                 title: Text(
-                  AppLocalizations.of(context)!.notFound,
+                  t.notFound,
                   style: TextStyle(color: Theme.of(context).errorColor),
                 ),
               ),
@@ -133,8 +153,10 @@ class _AskWordWidgetState extends State<AskWordWidget>
             ),
           ),
           const SizedBox(height: 24),
+
+          // wrong
           Visibility(
-            visible: _status == _Status.wrong,
+            visible: widget.question.state == QuestionState.wrong,
             child: Card(
               child: ListTile(
                 leading: const Icon(
@@ -142,15 +164,17 @@ class _AskWordWidgetState extends State<AskWordWidget>
                   color: Colors.red,
                 ),
                 title: Text(
-                  _choice != null ? _choice!.name : '',
+                  widget.question.usersAnswer ?? '',
                   // style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 24),
+
+          // correct answer
           Visibility(
-            visible: _status != _Status.waiting,
+            visible: widget.question.state != QuestionState.intertermined,
             child: Card(
               child: ListTile(
                 leading: const Icon(
@@ -165,13 +189,13 @@ class _AskWordWidgetState extends State<AskWordWidget>
             ),
           ),
           const SizedBox(height: 24),
+
+          // view definition
           Card(
             child: ListTile(
               leading: const Icon(Icons.short_text_outlined),
               title: Text(
-                _viewDef
-                    ? widget.question.word.def
-                    : AppLocalizations.of(context)!.viewDefinition,
+                _viewDef ? widget.question.word.def : t.viewDefinition,
                 style: _viewDef
                     ? null
                     : const TextStyle(fontStyle: FontStyle.italic),
@@ -182,6 +206,8 @@ class _AskWordWidgetState extends State<AskWordWidget>
             ),
           ),
           const SizedBox(height: 24),
+
+          // view mnemonic
           Visibility(
             visible: widget.question.word.mnemonic != null &&
                 widget.question.word.mnemonic != '',
@@ -191,7 +217,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
                 title: Text(
                   _viewMnemonic
                       ? widget.question.word.mnemonic ?? ''
-                      : AppLocalizations.of(context)!.viewMnemonic,
+                      : t.viewMnemonic,
                   style: _viewMnemonic
                       ? null
                       : const TextStyle(fontStyle: FontStyle.italic),
@@ -203,11 +229,13 @@ class _AskWordWidgetState extends State<AskWordWidget>
             ),
           ),
           const SizedBox(height: 24),
+
+          // give up button
           Visibility(
-            visible: _status == _Status.waiting,
+            visible: widget.question.state == QuestionState.intertermined,
             child: TextButton(
               onPressed: () => _grade(null),
-              child: Text(AppLocalizations.of(context)!.giveUp),
+              child: Text(t.giveUp),
             ),
           ),
         ],
