@@ -1,17 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
-import 'package:annoyer/database/dictionary.dart';
-import 'package:annoyer/database/settings.dart';
+import 'package:annoyer/database/local_settings.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/global.dart';
-import 'package:annoyer/training_system.dart';
+import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/log.dart';
+import 'package:annoyer/training.dart';
+import 'package:day_night_time_picker/day_night_time_picker.dart';
+import 'package:day_night_time_picker/lib/constants.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -27,25 +29,17 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsState extends State<SettingsPage> {
-  Settings _settings = Settings();
-
-  _loadSettings() async {
-    // load settings
-    Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-    _settings = box.get(Settings.key) ?? Settings();
-
-    // turn off alarm if it's not available
-    if (_settings.alarmEnabled) {
-      String? errorMsg = await TrainingSystem.checkAvailability();
-      if (errorMsg != null) {
-        _settings.alarmEnabled = false;
-        Global.showMessage(msg: errorMsg, type: ShowMessageType.error);
-      }
-    }
-
-    // update the state
-    setState(() {});
-  }
+  bool _alarmEnabled = false;
+  TimeOfDay _alarmTime = const TimeOfDay(hour: 0, minute: 0);
+  List<bool> _alarmWeekdays = [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ];
 
   @override
   void initState() {
@@ -54,150 +48,157 @@ class _SettingsState extends State<SettingsPage> {
     _loadSettings();
   }
 
+  _loadSettings() async {
+    // alarmEnabled
+    bool? ae = await LocalSettings.getAlarmEnabled();
+    if (ae == null) {
+      ae = false;
+      await LocalSettings.setAlarmEnabled(ae);
+    }
+    _alarmEnabled = ae;
+
+    // alarmTime
+    int? ath = await LocalSettings.getAlarmTimeHour();
+    int? atm = await LocalSettings.getAlarmTimeMinute();
+    if (ath == null || atm == null) {
+      ath = 9;
+      atm = 0;
+      await LocalSettings.setAlarmTimeHour(ath);
+      await LocalSettings.setAlarmTimeMinute(atm);
+    }
+    _alarmTime = TimeOfDay(
+      hour: ath,
+      minute: atm,
+    );
+
+    // alarmWeekdays
+    List<bool>? aw = await LocalSettings.getAlarmWeekdays();
+    if (aw == null) {
+      aw = [false, false, false, false, false, false, false];
+      await LocalSettings.setAlarmWeekdays(aw);
+    }
+    _alarmWeekdays = aw;
+
+    // update the state
+    setState(() {});
+  }
+
   Future<void> _alarmSwitch(bool newAlarmEnabled) async {
     try {
-      // check if it's available
+      // schedule/cancel training
+      String deviceId = (await LocalSettings.getDeviceId())!;
       if (newAlarmEnabled) {
-        String? errorMsg = await TrainingSystem.checkAvailability();
-        if (errorMsg != null) {
-          Global.showMessage(msg: errorMsg, type: ShowMessageType.error);
-          return;
-        }
-      }
-
-      // set the new settings
-      Settings newSettings = Settings.from(_settings);
-      newSettings.alarmEnabled = newAlarmEnabled;
-
-      // update alarms
-      final List<Future> futures = [];
-      if (newAlarmEnabled) {
-        // set the schedules
-        for (int weekday = 0; weekday < 7; weekday++) {
-          if (newSettings.alarmWeekdays[weekday]) {
-            TimeOfDay time = TimeOfDay(
-              hour: newSettings.alarmTimeHour,
-              minute: newSettings.alarmTimeMinute,
-            );
-            futures.add(TrainingSystem.setAlarm(time, weekday));
-          } else {
-            futures.add(TrainingSystem.cancelAlarm(weekday));
-          }
-        }
+        //-- Enable training alarm --//
+        await Training.setTraining(deviceId, _alarmTime, _alarmWeekdays);
       } else {
-        // cancel all alarms
-        for (int weekday = 0; weekday < 7; weekday++) {
-          futures.add(TrainingSystem.cancelAlarm(weekday));
-        }
+        //-- Disable training alarm --//
+        await Training.cancelTraining(deviceId);
       }
-      await Future.wait(futures);
 
-      // save to local storage
-      Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-      await box.put(Settings.key, newSettings);
+      // update db
+      await LocalSettings.setAlarmEnabled(newAlarmEnabled);
+
+      // log
+      logger.d('newAlarmEnabled: $newAlarmEnabled');
 
       // update the state
       setState(() {
-        _settings = newSettings;
+        _alarmEnabled = newAlarmEnabled;
       });
-    } on Exception catch (e) {
-      debugPrint(e.toString());
-    } finally {}
+    } catch (e) {
+      logger.e('_alarmSwitch', e);
+      Global.showFailure();
+    }
   }
 
   _pickAlarmTime(BuildContext context) async {
-    // get alarm time
-    TimeOfDay? alarmTimeSelected = await showTimePicker(
-      initialTime: TimeOfDay(
-        hour: _settings.alarmTimeHour,
-        minute: _settings.alarmTimeMinute,
+    Navigator.of(context).push(
+      showPicker(
+        context: context,
+        value: _alarmTime,
+        onChange: _onAlarmTimeChanged,
+        minuteInterval: MinuteInterval.FIFTEEN,
+        blurredBackground: true,
       ),
-      context: context,
     );
+  }
 
-    // Did user chose the time?
-    if (alarmTimeSelected != null) {
-      try {
-        // set the new settings
-        Settings newSettings = Settings.from(_settings);
-        newSettings.alarmTimeHour = alarmTimeSelected.hour;
-        newSettings.alarmTimeMinute = alarmTimeSelected.minute;
+  _onAlarmTimeChanged(TimeOfDay newAlarmTime) async {
+    try {
+      // schedule/cancel training
+      String deviceId = (await LocalSettings.getDeviceId())!;
+      await Training.setTraining(deviceId, newAlarmTime, _alarmWeekdays);
 
-        // reschedule
-        if (_settings.alarmEnabled) {
-          for (int weekday = 0; weekday < 7; weekday++) {
-            if (newSettings.alarmWeekdays[weekday]) {
-              await TrainingSystem.setAlarm(alarmTimeSelected, weekday);
-            }
-          }
-        }
+      // update db
+      await LocalSettings.setAlarmTimeHour(newAlarmTime.hour);
+      await LocalSettings.setAlarmTimeMinute(newAlarmTime.minute);
 
-        // save to the local storage
-        Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-        await box.put(Settings.key, newSettings);
+      // log
+      logger.d('newAlarmTime: $newAlarmTime');
 
-        // update state
-        setState(() {
-          _settings = newSettings;
-        });
-      } on Exception catch (e) {
-        debugPrint(e.toString());
-      }
+      // update the state
+      setState(() {
+        _alarmTime = newAlarmTime;
+      });
+    } catch (e) {
+      logger.e('_onAlarmTimeChange', e);
+      Global.showFailure();
     }
   }
 
   _toggleWeekday(BuildContext context, int weekday) async {
     try {
-      // set the new settings
-      Settings newSettings = Settings.from(_settings);
-      newSettings.alarmWeekdays[weekday] = !newSettings.alarmWeekdays[weekday];
+      assert(0 <= weekday && weekday < 7);
 
-      if (newSettings.alarmEnabled && newSettings.alarmWeekdays[weekday]) {
-        // reschedule
-        await TrainingSystem.setAlarm(
-          TimeOfDay(
-            hour: newSettings.alarmTimeHour,
-            minute: newSettings.alarmTimeMinute,
-          ),
-          weekday,
-        );
-      } else {
-        // cancel
-        await TrainingSystem.cancelAlarm(weekday);
-      }
+      // create new alarm weekdays
+      List<bool> newAlarmWeekdays = List.from(_alarmWeekdays);
+      newAlarmWeekdays[weekday] = !(newAlarmWeekdays[weekday]);
 
-      // save to the local storage
-      Box<Settings> box = await Hive.openBox<Settings>(Settings.boxName);
-      await box.put(Settings.key, newSettings);
+      // schedule/cancel training
+      String deviceId = (await LocalSettings.getDeviceId())!;
+      await Training.setTraining(deviceId, _alarmTime, newAlarmWeekdays);
 
-      // update state
+      // update db
+      await LocalSettings.setAlarmWeekdays(newAlarmWeekdays);
+
+      // log
+      logger.d('newAlarmWeekdays: $newAlarmWeekdays');
+
+      // update the state
       setState(() {
-        _settings = newSettings;
+        _alarmWeekdays = newAlarmWeekdays;
       });
-    } on Exception catch (e) {
-      debugPrint(e.toString());
+    } catch (e) {
+      logger.e('_toggleWeekday', e);
+      Global.showFailure();
     }
   }
 
   void _backup() async {
     try {
       // make a backup list
-      final Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-      final List backup = [];
-      for (Word word in box.values) {
-        backup.add(word.toMap());
-      }
+      List<Word> words = await Word.getAll();
 
-      if (backup.isEmpty) {
+      if (words.isEmpty) {
+        //-- no word to backup --//
         Global.showMessage(
           msg: 'You have no word!',
           type: ShowMessageType.error,
         );
       } else {
+        //-- do backup --//
+        // convert words to map
+        var wordsMap = words.map((e) {
+          var m = e.toMap();
+          m.remove('uid');
+          m.remove('docId');
+          return m;
+        }).toList();
+
         // save the backup list to a file
         final Directory directory = await getApplicationDocumentsDirectory();
         File backupFile = File('${directory.path}/$backupFilename');
-        await backupFile.writeAsString(jsonEncode(backup));
+        await backupFile.writeAsString(jsonEncode(wordsMap));
 
         // share the file
         await Share.shareFiles([backupFile.path]);
@@ -205,8 +206,8 @@ class _SettingsState extends State<SettingsPage> {
         // delete the backup file
         await backupFile.delete();
       }
-    } on Exception catch (e) {
-      debugPrint(e.toString());
+    } catch (e) {
+      logger.e('_backup', e);
     }
   }
 
@@ -216,6 +217,7 @@ class _SettingsState extends State<SettingsPage> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
+        allowMultiple: false,
       );
 
       if (result != null) {
@@ -227,132 +229,118 @@ class _SettingsState extends State<SettingsPage> {
         final List<dynamic> backup = jsonDecode(backupJson);
 
         // prepare as Word
-        final List<Word> words = [];
-        for (Map<String, dynamic> map in backup) {
-          try {
-            words.add(Word.fromMap(map));
-          } on Exception catch (e) {
-            debugPrint(e.toString());
-          }
-        }
+        final List<Word> words = backup.map((e) => Word.fromMap(e)).toList();
 
         // restore to the database
-        final Box<Word> box = await Hive.openBox<Word>(Dictionary.boxName);
-        await box.addAll(words);
+        // chunk into the maximum 500 bulk writes
+        List<Future> futures = [];
+        for (int i = 0; i < words.length; i += 500) {
+          futures
+              .add(Word.addAll(words.sublist(i, min(i + 500, words.length))));
+        }
+        await Future.wait(futures);
 
         // show success indicator
         Global.showSuccess();
       }
     } on PlatformException catch (e) {
+      // Permission required
       if (e.code == 'read_external_storage_denied') {
         Global.showMessage(
-          msg: AppLocalizations.of(context)!.storagePermissionRequired,
+          msg: t.storagePermissionRequired,
           type: ShowMessageType.error,
         );
       }
-    } on Exception catch (e) {
-      debugPrint(e.toString());
+    } catch (e) {
+      logger.e('_restore', e);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settings)),
+      appBar: AppBar(title: Text(t.settings)),
       body: ListView(
         children: <Widget>[
           ListTile(
-            title: Text(AppLocalizations.of(context)!.alarm),
+            title: Text(t.training),
             dense: true,
             trailing: Switch(
-              value: _settings.alarmEnabled,
+              value: _alarmEnabled,
               onChanged: _alarmSwitch,
             ),
           ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.alarm_outlined),
-              title: TextButton(
-                onPressed: _settings.alarmEnabled
-                    ? () => _pickAlarmTime(context)
-                    : null,
-                child: Text(
-                  TimeOfDay(
-                    hour: _settings.alarmTimeHour,
-                    minute: _settings.alarmTimeMinute,
-                  ).format(context),
-                ),
-              ),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.event_outlined),
-              title: Wrap(
-                children: [
-                  AppLocalizations.of(context)!.sun,
-                  AppLocalizations.of(context)!.mon,
-                  AppLocalizations.of(context)!.tue,
-                  AppLocalizations.of(context)!.wed,
-                  AppLocalizations.of(context)!.thu,
-                  AppLocalizations.of(context)!.fri,
-                  AppLocalizations.of(context)!.sat,
-                ].asMap().entries.map((entry) {
-                  return TextButton(
-                    onPressed: _settings.alarmEnabled
-                        ? () => _toggleWeekday(context, entry.key)
-                        : null,
-                    child: Text(
-                      entry.value,
-                      style: _settings.alarmEnabled
-                          ? (TextStyle(
-                              color: _settings.alarmWeekdays[entry.key]
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey,
-                            ))
-                          : null,
-                    ),
-                  );
-                }).toList(),
-                alignment: WrapAlignment.center,
-                spacing: 10.0,
-              ),
-            ),
-          ),
-          // const ListTile(
-          //   title: Text(
-          //     'Sync',
-          //   ),
-          //   dense: true,
-          // ),
-
           ListTile(
-            title: Text(
-                '${AppLocalizations.of(context)!.backup}/${AppLocalizations.of(context)!.restore}'),
+            leading: const Icon(Icons.alarm_outlined),
+            title: TextButton(
+              onPressed: _alarmEnabled ? () => _pickAlarmTime(context) : null,
+              child: Text(_alarmTime.format(context)),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.event_outlined),
+            title: Wrap(
+              children: [
+                t.sun,
+                t.mon,
+                t.tue,
+                t.wed,
+                t.thu,
+                t.fri,
+                t.sat,
+              ].asMap().entries.map((entry) {
+                return TextButton(
+                  onPressed: _alarmEnabled
+                      ? () => _toggleWeekday(context, entry.key)
+                      : null,
+                  child: Text(
+                    entry.value,
+                    style: _alarmEnabled
+                        ? (TextStyle(
+                            color: _alarmWeekdays[entry.key]
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.background,
+                            fontWeight: _alarmWeekdays[entry.key]
+                                ? FontWeight.bold
+                                : null,
+                          ))
+                        : null,
+                  ),
+                );
+              }).toList(),
+              alignment: WrapAlignment.center,
+              spacing: 10.0,
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            title: Text(t.dataManagement),
             dense: true,
           ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.backup_outlined),
-              title: Text(AppLocalizations.of(context)!.backup),
-              onTap: _backup,
-            ),
+          // ListTile(
+          //   leading: const Icon(Icons.sync_outlined),
+          //   title: Text('sync'.tr()),
+          //   onTap: () async {
+          //   },
+          // ),
+          ListTile(
+            leading: const Icon(Icons.backup_outlined),
+            title: Text(t.backup),
+            onTap: _backup,
           ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.restore_outlined),
-              title: Text(AppLocalizations.of(context)!.restore),
-              onTap: _restore,
-            ),
+          ListTile(
+            leading: const Icon(Icons.restore_outlined),
+            title: Text(t.restore),
+            onTap: _restore,
           ),
-
+          const Divider(),
           Visibility(
             visible: kDebugMode,
             child: ListTile(
               title: const Text('DEBUG'),
               onTap: () {
-                Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (context) => DebugPage()));
+                Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const DebugPage()));
               },
             ),
           ),
