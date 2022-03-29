@@ -1,3 +1,7 @@
+- bugs
+  - blankify not working
+    - sentence: Send an email before dropping by a professor.
+    - idiom: drop by
 - todo
   - notification
     - On tapping consolidated notifications?
@@ -12,14 +16,12 @@
     - offline dictionary
       - https://github.com/wordset/wordset-dictionary
   - reschedule the training as timezone changes
-  
 - considerations
   - index
     - delete non-fulltext mode?
     - in full text mode, delete all whitespaces and put the word into the trie
       - but this will prevent searching `go up against` by `gua`
   - show level on dictionary, practice and test page?
-
 - client db
   - training_data
   - practice_instances
@@ -28,9 +30,8 @@
 - server db
   - words
   - users
-
 - training system
-  
+
   - total time : L
   - num. of words a day : n
   - num. of repetitions a word : m
@@ -41,7 +42,6 @@
     - L = 8 hr, n = 16, m = k = 3 => A = 16, T = 0.5 hr
   - The chosen words on a day are distinct.
   - If the total number of words is less than n, then always choose all of them.
-
 - level system
   - Every word has a level(positive integer).
   - The initial and the minimum level is 1.
