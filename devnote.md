@@ -5,6 +5,7 @@
 - todo
   - notification
     - On tapping consolidated notifications?
+    - When practice/test instance is resolved, remove the corresponding notification.
   - documentation
   - Replace widgets with better ones
     - flutter_typeahead (During the loading, only 'not found' is shown)
