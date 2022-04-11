@@ -2,6 +2,10 @@
   - blankify not working
     - sentence: Send an email before dropping by a professor.
     - idiom: drop by
+  - blankify not working after altering idiom
+    - sentence: The place was filled with sleeping people. I tripped over perfect strangers on my way to the door.
+    - idiom: trip on -> trip over
+  - search and modifying a term doesn't display right after the operation, although it did actually.
 - todo
   - notification
     - On tapping consolidated notifications?
