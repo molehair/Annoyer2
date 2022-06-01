@@ -37,15 +37,19 @@ class _DebugPageState extends State<DebugPage> {
             child: const Text('view logs'),
             onPressed: () async {
               List<LogItem> logs = await LogItem.getAll();
-              Navigator.of(context).push(
+              await Navigator.of(context).push(
                 MaterialPageRoute(
-                    builder: (context) => Scaffold(
-                          body: ListView(
-                            children: logs
-                                .map((e) => ListTile(title: Text(e.log)))
-                                .toList(),
-                          ),
-                        )),
+                  builder: (context) => Scaffold(
+                    body: ListView.builder(
+                      shrinkWrap: true,
+                      reverse: false,
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        return Text(logs[index].log);
+                      },
+                    ),
+                  ),
+                ),
               );
             },
           ),
