@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 
 import 'config.dart';
@@ -9,13 +8,23 @@ import 'database/local_settings.dart';
 class Browser {
   static final Client _client = Client();
 
+  /// Create and return Uri instance
+  static Uri createUri(String serverAddress, String unencodedPath,
+      {Map<String, dynamic>? queryParameters}) {
+    /// Cut out prefix "http://" or "https://" from the server address
+    /// If omitted, it is regarded as https.
+    return serverAddress.startsWith('http://')
+        ? Uri.http(serverAddress.substring(7), unencodedPath, queryParameters)
+        : Uri.https(serverAddress.substring(8), unencodedPath, queryParameters);
+  }
+
   static Future<Response> get(
     String unencodedPath, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    var url = kDebugMode
-        ? Uri.http(serverAddress, unencodedPath, queryParameters)
-        : Uri.https(serverAddress, unencodedPath, queryParameters);
+    var url = createUri(serverAddress, unencodedPath,
+        queryParameters: queryParameters);
+
     String? cookie = await LocalSettings.getCookie();
     Response res;
     res = await _client.get(
@@ -35,9 +44,9 @@ class Browser {
     Object? body,
     Encoding? encoding,
   }) async {
-    var url = kDebugMode
-        ? Uri.http(serverAddress, unencodedPath, queryParameters)
-        : Uri.https(serverAddress, unencodedPath, queryParameters);
+    var url = createUri(serverAddress, unencodedPath,
+        queryParameters: queryParameters);
+
     String? cookie = await LocalSettings.getCookie();
     Response res;
     Map<String, String> headers = {
