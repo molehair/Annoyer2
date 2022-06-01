@@ -40,6 +40,7 @@ Your annoying friend for learning vocabulary
 
 ```bash
 flutter pub get			# get packages
+flutter pub run build_runner build
 flutter build apk
 ```
 
