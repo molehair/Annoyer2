@@ -16,7 +16,7 @@ class PracticePage extends StatelessWidget {
   })  : _loader = _load(inst),
         super(key: key) {
     // remove instance after build
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       PracticeInstance.delete(inst.id!);
     });
   }

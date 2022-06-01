@@ -32,7 +32,7 @@ class _HomeState extends State<HomePage> {
     _updateBadge();
 
     // launch practice / test page if launched by tapping a notification
-    WidgetsBinding.instance!.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       NotificationAppLaunchDetails? nald = await NotificationCenter
           .flutterLocalNotificationsPlugin
           .getNotificationAppLaunchDetails();
