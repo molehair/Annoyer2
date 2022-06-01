@@ -21,6 +21,8 @@
   - Replace widgets with better ones
     - flutter_typeahead (During the loading, only 'not found' is shown)
     - day_night_time_picker (unhandy.. better to get it back to the original one)
+      - https://pub.dev/packages/time_picker_widget
+      - https://api.flutter.dev/flutter/cupertino/CupertinoDatePicker-class.html
   - animation
   - In ask word widget, display the correct/wrong clearly as askDef widget does. Show the target word like askDef does?
   - replace all 'loading' with CircularProgressIndicator
