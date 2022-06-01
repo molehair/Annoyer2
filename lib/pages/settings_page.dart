@@ -259,7 +259,15 @@ class _SettingsState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(t.settings)),
+      appBar: AppBar(
+        title: GestureDetector(
+          onLongPress: () {
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const DebugPage()));
+          },
+          child: Text(t.settings),
+        ),
+      ),
       body: ListView(
         children: <Widget>[
           ListTile(
