@@ -2,15 +2,12 @@
 
 import 'package:annoyer/database/database.dart';
 import 'package:annoyer/database/log_item.dart';
-import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
-Logger logger = kDebugMode
-    ? Logger(printer: SimplePrinter(printTime: true))
-    : Logger(
-        printer: SimplePrinter(printTime: true),
-        output: MultiOutput([ConsoleOutput(), _DBLog()]),
-      );
+Logger logger = Logger(
+  printer: SimplePrinter(printTime: true),
+  output: MultiOutput([ConsoleOutput(), _DBLog()]),
+);
 
 class _DBLog extends LogOutput {
   @override
