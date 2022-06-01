@@ -339,7 +339,14 @@ class Training {
 
       // update alarms
       var res = await Browser.post('/setTraining', body: body);
-      if (res.statusCode != 200) {
+
+      // log
+      if (res.statusCode == 200) {
+        logger.i("/setTraining: set training schedule");
+      } else if (res.statusCode < 400) {
+        logger.i("/setTraining: statusCode ${res.statusCode}");
+      } else {
+        logger.e("/setTraining: statusCode ${res.statusCode}");
         throw "/setTraining: statusCode ${res.statusCode}";
       }
     } catch (e) {
@@ -356,7 +363,14 @@ class Training {
 
       // update alarms
       var res = await Browser.post('/setTraining', body: body);
-      if (res.statusCode != 200) {
+
+      // log
+      if (res.statusCode == 200) {
+        logger.i("/setTraining: canceled training schedule");
+      } else if (res.statusCode < 400) {
+        logger.i("/setTraining: statusCode ${res.statusCode}");
+      } else {
+        logger.e("/setTraining: statusCode ${res.statusCode}");
         throw "/setTraining: statusCode ${res.statusCode}";
       }
     } catch (e) {
