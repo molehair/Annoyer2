@@ -11,6 +11,9 @@
   - blankify not working
     - sentence: I'm exhausted after lugging these suitcases all the way across the city.
     - word: lug
+  - blankify not working
+    - sentence: Please, save my husband at all costs-I can't live without him!
+    - word: at all cost
   - search and modifying a term doesn't display right after the operation, although it did actually.
   
 - todo
