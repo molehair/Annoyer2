@@ -18,6 +18,7 @@
     - sentence: He plopped himself down in the chair.
     - idiom: plop down
   - search and modifying a term doesn't display right after the operation, although it did actually.
+  - Modifying a term doesn't show up right after the change, sometimes.
   
 - todo
   - notification
