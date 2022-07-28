@@ -32,12 +32,12 @@ dependencies:
 
   # my plugins
   uuid: ^3.0.5
-  flutter_typeahead: ^3.2.3
+  flutter_typeahead: ^4.0.0
   file_picker: ^4.2.6
   badges: ^2.0.2
   logger: ^1.1.0
   share_plus: ^4.0.5
-  flutter_local_notifications: ^9.3.2
+  flutter_local_notifications: ^9.7.0
   isar: ^2.2.1
   isar_flutter_libs: ^2.2.1
   path_provider: ^2.0.9
