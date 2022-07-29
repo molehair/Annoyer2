@@ -7,8 +7,6 @@ import 'package:annoyer/database/word.dart';
 import 'package:annoyer/global.dart';
 import 'package:annoyer/i18n/strings.g.dart';
 import 'package:annoyer/log.dart';
-import 'package:day_night_time_picker/day_night_time_picker.dart';
-import 'package:day_night_time_picker/lib/constants.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -101,30 +99,26 @@ class _SettingsState extends State<SettingsPage> {
   }
 
   Future<void> _pickAlarmTime(BuildContext context) async {
-    Navigator.of(context).push(
-      showPicker(
-        context: context,
-        value: _alarmTime,
-        onChange: _onAlarmTimeChanged,
-        minuteInterval: MinuteInterval.FIFTEEN,
-        blurredBackground: true,
-      ),
+    // get time from the user
+    TimeOfDay? newAlarmTime = await showTimePicker(
+      initialTime: _alarmTime,
+      context: context,
     );
-  }
 
-  _onAlarmTimeChanged(TimeOfDay newAlarmTime) async {
     try {
-      // update db
-      await LocalSettings.setAlarmTimeHour(newAlarmTime.hour);
-      await LocalSettings.setAlarmTimeMinute(newAlarmTime.minute);
+      if (newAlarmTime != null) {
+        // update db
+        await LocalSettings.setAlarmTimeHour(newAlarmTime.hour);
+        await LocalSettings.setAlarmTimeMinute(newAlarmTime.minute);
 
-      // log
-      Log.info('newAlarmTime: $newAlarmTime');
+        // log
+        Log.info('newAlarmTime: $newAlarmTime');
 
-      // update the state
-      setState(() {
-        _alarmTime = newAlarmTime;
-      });
+        // update the state
+        setState(() {
+          _alarmTime = newAlarmTime;
+        });
+      }
     } on Exception catch (e) {
       Log.error('_onAlarmTimeChange in SettingsPage', exception: e);
       Global.showFailure();
