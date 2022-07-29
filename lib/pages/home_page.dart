@@ -1,7 +1,6 @@
 // Home provides menus when the user signed in.
 
-import 'package:annoyer/database/practice_instance.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/i18n/strings.g.dart';
 import 'package:annoyer/notification_center.dart';
 import 'package:annoyer/pages/training_page.dart';
@@ -25,8 +24,7 @@ class _HomeState extends State<HomePage> {
   @override
   void initState() {
     // add listener for training badge
-    PracticeInstance.getStream().listen(_onInstanceUpdate);
-    TestInstance.getStream().listen(_onInstanceUpdate);
+    TrainingInstance.getStream().listen(_onInstanceUpdate);
 
     // set badge status
     _updateBadge();
@@ -55,12 +53,11 @@ class _HomeState extends State<HomePage> {
       return;
     }
 
-    int pracInstCount = await PracticeInstance.count();
-    int testInstCount = await TestInstance.count();
+    int instCount = await TrainingInstance.count();
 
     // update state
     setState(() {
-      _showTrainingBadge = (pracInstCount + testInstCount > 0);
+      _showTrainingBadge = instCount > 0;
     });
   }
 
