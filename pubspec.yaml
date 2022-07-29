@@ -41,9 +41,6 @@ dependencies:
   isar: ^2.2.1
   isar_flutter_libs: ^2.2.1
   path_provider: ^2.0.9
-  day_night_time_picker: ^1.0.5
-  firebase_core: ^1.13.1
-  firebase_messaging: ^11.2.8
   http: ^0.13.4
   flutter_logs: ^2.1.7
 

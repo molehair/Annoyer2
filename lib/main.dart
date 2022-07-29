@@ -1,11 +1,9 @@
 import 'package:annoyer/background_worker.dart';
 import 'package:annoyer/database/database.dart';
 import 'package:annoyer/notification_center.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'database/word.dart';
-import 'firebase_options.dart';
 import 'global.dart';
 import 'i18n/strings.g.dart';
 import 'log.dart';
@@ -24,11 +22,11 @@ Future<void> initialization() async {
   await Database.initialization();
   Log.info('Initialized Local Database');
 
-  // firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  Log.info('Initialized Firebase');
+  // // firebase
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
+  // Log.info('Initialized Firebase');
 
   // background worker
   await BackgroundWorker.initialization();
