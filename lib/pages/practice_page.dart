@@ -2,10 +2,11 @@
 
 import 'dart:math';
 
-import 'package:annoyer/database/practice_instance.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/notification_center.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
 
@@ -17,31 +18,35 @@ class PracticePage extends StatelessWidget {
         super(key: key) {
     // remove instance after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      PracticeInstance.delete(inst.id!);
+      TrainingInstance.delete(inst.id!);
     });
+
+    // discard notification
+    NotificationCenter.cancel(inst.notificationId);
   }
 
-  final PracticeInstance inst;
+  final TrainingInstance inst;
   final Future<List<Word>> _loader;
 
   /// Load the words to show
   /// RETURN
   /// 1. the loaded words if they're valid
   /// 2. empty list, otherwise
-  static Future<List<Word>> _load(PracticeInstance inst) async {
+  static Future<List<Word>> _load(TrainingInstance inst) async {
     // load training words
     TrainingData? trainingData = await TrainingData.get(inst.trainingId);
 
     // Validation check.
-    if (trainingData == null || !trainingData.isValid()) {
+    DateTime now = DateTime.now();
+    if (trainingData == null || trainingData.expiration.isBefore(now)) {
       //-- invalid --//
       return [];
     }
 
     // Retrieve the words to show
-    // choose ((dailyIndex * numTrainingWordsPerAlarm) +0) % numTrainingWords,
-    //        ((dailyIndex * numTrainingWordsPerAlarm) +1) % numTrainingWords,
-    //        ((dailyIndex * numTrainingWordsPerAlarm) +2) % numTrainingWords,
+    // choose ((trainingIndex * numTrainingWordsPerAlarm) +0) % numTrainingWords,
+    //        ((trainingIndex * numTrainingWordsPerAlarm) +1) % numTrainingWords,
+    //        ((trainingIndex * numTrainingWordsPerAlarm) +2) % numTrainingWords,
     //        ... ,
     List<Word> words = [];
     for (int i = 0;
@@ -52,7 +57,7 @@ class PracticePage extends StatelessWidget {
             );
         i++) {
       // compute the index
-      int j = (inst.dailyIndex * Training.numTrainingWordsPerAlarm + i) %
+      int j = (inst.trainingIndex * Training.numTrainingWordsPerAlarm + i) %
           trainingData.wordIds.length;
 
       // get a word

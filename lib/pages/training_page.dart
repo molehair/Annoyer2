@@ -1,7 +1,6 @@
-import 'package:annoyer/database/practice_instance.dart';
-import 'package:annoyer/database/question.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
 
 import 'practice_page.dart';
@@ -15,14 +14,12 @@ class TrainingPage extends StatefulWidget {
 }
 
 class _TrainingPageState extends State<TrainingPage> {
-  List<PracticeInstance> _pracInsts = [];
-  List<TestInstance> _testInsts = [];
+  List<TrainingInstance> insts = [];
 
   @override
   void initState() {
     // add listeners
-    PracticeInstance.getStream().listen(_onInstanceUpdate);
-    TestInstance.getStream().listen(_onInstanceUpdate);
+    TrainingInstance.getStream().listen(_onInstanceUpdate);
 
     // initial refresh
     _refresh();
@@ -35,8 +32,7 @@ class _TrainingPageState extends State<TrainingPage> {
   }
 
   _refresh() async {
-    _pracInsts = await PracticeInstance.getAll();
-    _testInsts = await TestInstance.getAll();
+    insts = await TrainingInstance.getAll();
     if (mounted) {
       setState(() {});
     }
@@ -47,45 +43,35 @@ class _TrainingPageState extends State<TrainingPage> {
     return Scaffold(
       appBar: AppBar(title: Text(t.training)),
       body: ListView.builder(
-        itemCount: _pracInsts.length + _testInsts.length,
+        itemCount: insts.length,
         itemBuilder: (context, index) {
-          if (index < _pracInsts.length) {
-            //-- practice --//
-            PracticeInstance inst = _pracInsts[index];
-            return ListTile(
-              title: Text('${t.practice} ${inst.dailyIndex}'),
-              subtitle: Text('for the test ${inst.trainingId}'),
-              leading: const Icon(Icons.sms_outlined),
-              onTap: () {
-                Navigator.of(context).push(
+          var inst = insts[index];
+          Widget title;
+          Widget? subtitle;
+          void Function() onTap;
+          if (Training.isPractice(inst.trainingIndex)) {
+            title = Text('${t.practice} ${inst.trainingIndex}');
+            subtitle = Text('for the test ${inst.trainingId}');
+            onTap = () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => PracticePage(inst: inst),
-                  ),
+                      builder: (context) => PracticePage(inst: inst)),
                 );
-              },
-            );
           } else {
-            //-- test --//
-            index -= _pracInsts.length;
-            TestInstance inst = _testInsts[index];
-            int finished = inst.questions
-                .where((q) => q.state != QuestionState.intertermined)
-                .length;
-            return ListTile(
-              title: Text('${t.test} ${inst.trainingId}'),
-              subtitle: LinearProgressIndicator(
-                value: finished / inst.questions.length,
-              ),
-              leading: const Icon(Icons.contact_support_outlined),
-              onTap: () {
-                Navigator.of(context).push(
+            title = Text('${t.test}  ${inst.trainingId}');
+            subtitle = null;
+            onTap = () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => TestPage(inst: inst),
-                  ),
+                      builder: (context) =>
+                          TestPage(trainingId: inst.trainingId)),
                 );
-              },
-            );
           }
+
+          return ListTile(
+            title: title,
+            subtitle: subtitle,
+            leading: const Icon(Icons.sms_outlined),
+            onTap: onTap,
+          );
         },
       ),
     );

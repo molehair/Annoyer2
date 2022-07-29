@@ -1,7 +1,6 @@
 import 'package:annoyer/database/local_settings.dart';
 import 'package:annoyer/database/log_item.dart';
-import 'package:annoyer/database/practice_instance.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:isar/isar.dart';
@@ -37,8 +36,7 @@ class Database {
     isar = await Isar.open(
       schemas: [
         WordSchema,
-        PracticeInstanceSchema,
-        TestInstanceSchema,
+        TrainingInstanceSchema,
         TrainingDataSchema,
         LogItemSchema,
         LocalSettingsSchema,
