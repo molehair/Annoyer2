@@ -7,7 +7,6 @@ import 'package:annoyer/database/word.dart';
 import 'package:annoyer/global.dart';
 import 'package:annoyer/i18n/strings.g.dart';
 import 'package:annoyer/log.dart';
-import 'package:annoyer/training.dart';
 import 'package:day_night_time_picker/day_night_time_picker.dart';
 import 'package:day_night_time_picker/lib/constants.dart';
 import 'package:file_picker/file_picker.dart';
@@ -85,16 +84,6 @@ class _SettingsState extends State<SettingsPage> {
 
   Future<void> _alarmSwitch(bool newAlarmEnabled) async {
     try {
-      // schedule/cancel training
-      String deviceId = (await LocalSettings.getDeviceId())!;
-      if (newAlarmEnabled) {
-        //-- Enable training alarm --//
-        await Training.setTraining(deviceId, _alarmTime, _alarmWeekdays);
-      } else {
-        //-- Disable training alarm --//
-        await Training.cancelTraining(deviceId);
-      }
-
       // update db
       await LocalSettings.setAlarmEnabled(newAlarmEnabled);
 
@@ -111,7 +100,7 @@ class _SettingsState extends State<SettingsPage> {
     }
   }
 
-  _pickAlarmTime(BuildContext context) async {
+  Future<void> _pickAlarmTime(BuildContext context) async {
     Navigator.of(context).push(
       showPicker(
         context: context,
@@ -125,10 +114,6 @@ class _SettingsState extends State<SettingsPage> {
 
   _onAlarmTimeChanged(TimeOfDay newAlarmTime) async {
     try {
-      // schedule/cancel training
-      String deviceId = (await LocalSettings.getDeviceId())!;
-      await Training.setTraining(deviceId, newAlarmTime, _alarmWeekdays);
-
       // update db
       await LocalSettings.setAlarmTimeHour(newAlarmTime.hour);
       await LocalSettings.setAlarmTimeMinute(newAlarmTime.minute);
@@ -153,10 +138,6 @@ class _SettingsState extends State<SettingsPage> {
       // create new alarm weekdays
       List<bool> newAlarmWeekdays = List.from(_alarmWeekdays);
       newAlarmWeekdays[weekday] = !(newAlarmWeekdays[weekday]);
-
-      // schedule/cancel training
-      String deviceId = (await LocalSettings.getDeviceId())!;
-      await Training.setTraining(deviceId, _alarmTime, newAlarmWeekdays);
 
       // update db
       await LocalSettings.setAlarmWeekdays(newAlarmWeekdays);

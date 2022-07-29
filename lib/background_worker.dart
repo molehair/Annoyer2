@@ -1,6 +1,6 @@
-import 'package:annoyer/log.dart';
 import 'package:annoyer/main.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:workmanager/workmanager.dart';
 
 class BackgroundWorker {
   //---------------------------------------------------------------//
@@ -14,8 +14,12 @@ class BackgroundWorker {
   /// Initialized this class?
   static bool _inited = false;
 
+  /// the interval between the times of two consecutive background worker executions in min
+  /// Android will automatically change your frequency to 15 min if you have configured a lower frequency.
+  static const _interval = Duration(minutes: 20);
+
   /// task to callback function
-  static final Map<String, Function(Map<String, dynamic>?)> _tasks = {};
+  static final Map<String, Function()> _tasks = {};
 
   //---------------------------------------------------------------//
   //        exported methods
@@ -27,24 +31,27 @@ class BackgroundWorker {
       return;
     }
 
-    // register push handlers
-    FirebaseMessaging.onMessage.listen(_foregroundHandler);
-    FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
+    // workmanager
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
+    Workmanager().registerPeriodicTask(
+      'workmanager',
+      'workmanager',
+      frequency: _interval,
+    );
 
     // mark as finished initialization
     _inited = true;
   }
 
-  /// Upon [task] takes place, [callback] is called.
-  /// If [task] is already registered, the new [callback] will override the old one.
-  static void setTaskCallback(
-      String task, Function(Map<String, dynamic>?) callback) {
-    _tasks[task] = callback;
+  /// [callback] is called at every 20 mins.
+  /// If [taskId] is already registered, the new [callback] will override the old one.
+  static void registerPeriodicTask(String taskId, Function() callback) {
+    _tasks[taskId] = callback;
   }
 
-  /// Stop listening to [task]
-  static removeTaskCallback(String task) {
-    _tasks.remove(task);
+  /// Make a stop on [taskId]
+  static void cancelPeriodicTask(String taskId) {
+    _tasks.remove(taskId);
   }
 
   //---------------------------------------------------------------//
@@ -52,28 +59,16 @@ class BackgroundWorker {
   //---------------------------------------------------------------//
 }
 
-// callback for push notification in foreground
-void _foregroundHandler(RemoteMessage message) async {
-  Map<String, dynamic> data = message.data;
+void callbackDispatcher() {
+  Workmanager().executeTask((taskId, inputData) async {
+    // init in the background
+    await initialization();
 
-  // call the callback
-  String task = data['task'];
-  if (BackgroundWorker._tasks.containsKey(task)) {
-    try {
-      await Future.sync(() => BackgroundWorker._tasks[task]!.call(data));
-    } catch (e) {
-      logger.e(e, e);
+    // call the callbacks
+    for (var task in BackgroundWorker._tasks.values) {
+      task.call();
     }
-  } else {
-    logger.w('Unknown task: $task');
-  }
-}
 
-// callback for push notification in background
-Future<void> _backgroundHandler(RemoteMessage message) async {
-  // init app
-  await initialization();
-
-  // run as foreground
-  _foregroundHandler(message);
+    return true;
+  });
 }

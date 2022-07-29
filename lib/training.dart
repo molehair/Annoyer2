@@ -3,10 +3,10 @@
 import 'dart:math';
 
 import 'package:annoyer/background_worker.dart';
-import 'package:annoyer/database/practice_instance.dart';
+import 'package:annoyer/database/local_settings.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/question_ask_definition.dart';
 import 'package:annoyer/database/question_ask_word.dart';
-import 'package:annoyer/database/test_instance.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/question.dart';
 import 'package:annoyer/i18n/strings.g.dart';
@@ -14,7 +14,6 @@ import 'package:annoyer/notification_center.dart';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 
-import 'browser.dart';
 import 'database/training_data.dart';
 import 'log.dart';
 import 'pages/practice_page.dart';
@@ -32,8 +31,11 @@ class Training {
 
   static bool _inited = false;
 
-  /// min. The time duration from the 1st practice to the test
-  static const int totalTime = 8 * 60;
+  /// min.
+  /// The time interval between two consecutive alarms
+  /// This is a rough estimation. It may vary depending on
+  /// machine's background worker policy such as workmanager in Android.
+  static const int notiInterval = 20;
 
   /// number of words a day for training
   static const int numTrainingWords = 16;
@@ -48,24 +50,29 @@ class Training {
   static final int numPracticeAlarmsPerDay =
       (1.0 * numTrainingWords * numReps / numTrainingWordsPerAlarm).ceil();
 
-  /// min. The time interval between two consecutive alarms
-  static final int notiInterval = (totalTime / numPracticeAlarmsPerDay).floor();
-  // TODO: move these configuration settings to the server
-
   /// number of alarms a day
   static final int numAlarmsPerDay = numPracticeAlarmsPerDay + 1;
 
-  // through which a newly generated training data is valid
+  /// min.
+  /// The expected total time of single training session
+  static final int totalTime = notiInterval * (numAlarmsPerDay - 1);
+
+  /// min.
+  /// The length of time to which check if there exists
+  /// a beginning point of a training session from the current time
+  ///
+  /// Must be less than totalTime.
+  /// Otherwise, more than one training sessions may occur from one beginning point.
+  static final int _beginningTolerance = (totalTime / 2).floor();
+
+  /// the lifespan of trainingData
   static const Duration _trainingDataEffectiveDuration = Duration(days: 2);
 
-  // task identifiers for background worker
-  // REQUIRE: must match those on the server
-  static const String _taskPractice = 'practice';
-  static const String _taskTest = 'test';
+  /// task identifiers for background worker
+  static const String _taskId = 'training';
 
-  // notification identifiers for on-tap notification callbacks
-  static const String _notiKeyPractice = _taskPractice;
-  static const String _notiKeyTest = _taskTest;
+  /// notification identifier for on-tap notification callbacks
+  static const String _notiKey = _taskId;
 
   //---------------------------------------------------------------//
   //        exported methods
@@ -78,88 +85,274 @@ class Training {
     }
 
     // set task handlers
-    BackgroundWorker.setTaskCallback(_taskPractice, onPractice);
-    BackgroundWorker.setTaskCallback(_taskTest, onTest);
+    BackgroundWorker.registerPeriodicTask(_taskId, onBackgroundCallback);
 
     // register on-tap notification callbacks
     NotificationCenter.setOnTapCallback(
-        _notiKeyPractice, (data) => onPracticeTapped(data!));
-    NotificationCenter.setOnTapCallback(
-        _notiKeyTest, (data) => onTestTapped(data!));
+        _notiKey, (data) => onNotificationTapped(data!));
 
     // set test instance clean-up handler
-    TestInstance.getStream().listen(_onTestInstanceChange);
+    TrainingInstance.getStream().listen(_cleanUpCompleteInstances);
 
     // mark as finished initialization
     _inited = true;
   }
 
-  /// Practice handler
-  static Future<void> onPractice(Map<String, Object?>? data) async {
-    logger.d('onPractice: $data');
+  /// When user tapped a training notification
+  static Future<void> onNotificationTapped(Map<String, Object?>? data) async {
+    int trainingId = data!['trainingId'] as int;
+    int trainingIndex = data['trainingIndex'] as int;
 
-    assert(data!['trainingId'] != null);
-    assert(data!['dailyIndex'] != null);
+    // Get instance key
+    int instKey = _computeTrainingInstanceId(trainingId, trainingIndex);
 
-    int dailyIndex = int.parse(data!['dailyIndex'] as String);
-    int trainingId = int.parse(data['trainingId'] as String);
-    int instId = _computePracticeInstanceId(trainingId, dailyIndex);
-
-    // has training data?
-    TrainingData? trainingData = await TrainingData.get(trainingId);
-    if (trainingData == null) {
-      // create training data
-      trainingData = await Training.createTrainingData(
-        DateTime.now().add(_trainingDataEffectiveDuration),
-      );
-
-      // failed to create?
-      if (trainingData == null) {
-        throw 'Unable to create training data';
+    // Set target page
+    Widget targetPage;
+    if (isPractice(trainingIndex)) {
+      // Fetch the instance
+      TrainingInstance? inst = await TrainingInstance.get(instKey);
+      if (inst == null) {
+        throw 'No practice/test instance found by key $instKey';
       }
+      inst.id = instKey;
 
-      // set training key
-      trainingData.id = trainingId;
-
-      // save
-      await TrainingData.put(trainingData);
+      targetPage = PracticePage(inst: inst);
+    } else {
+      targetPage = TestPage(trainingId: trainingId);
     }
 
-    // add an instance
-    await PracticeInstance.put(
-      PracticeInstance(
-        id: instId,
-        dailyIndex: dailyIndex,
-        trainingId: trainingId,
-      ),
-    );
-
-    // notification
-    await NotificationCenter.show(
-      title: t.practiceNotifier,
-      data: {'trainingId': trainingId, 'dailyIndex': dailyIndex},
-      key: _notiKeyPractice,
+    Navigator.of(Global.navigatorKey.currentContext!).push(
+      MaterialPageRoute(builder: (context) => targetPage),
     );
   }
 
-  /// Test handler
-  static Future<void> onTest(Map<String, Object?>? data) async {
-    logger.d('onTest: $data');
-    assert(data!['trainingId'] != null);
+  /// Create and return a list of daily words for training
+  ///
+  /// RETURN: null if the list cannot be generated.
+  static Future<TrainingData?> createTrainingData() async {
+    TrainingData? trainingData;
 
-    int trainingId = int.parse(data!['trainingId'] as String);
-    int instKey = _computeTestInstanceId(trainingId);
+    try {
+      // select the keys of words
+      List<int> chosenIds = await _chooseRandomWords(numTrainingWords);
 
-    // has training data?
-    TrainingData? trainingData = await TrainingData.get(trainingId);
-    if (trainingData == null) {
-      throw 'No training data found';
+      // create questions
+      List<Question> questions = await _createQuestions(chosenIds);
+
+      // set expiration
+      DateTime expiration = DateTime.now().add(_trainingDataEffectiveDuration);
+
+      //-- consolidate everything --//
+      if (chosenIds.isNotEmpty) {
+        trainingData = TrainingData(
+          expiration: expiration,
+          wordIds: chosenIds,
+          questions: questions,
+        );
+      }
+    } on Exception catch (e) {
+      logger.e('creatingTrainingData', e);
     }
 
-    // create questions
+    return trainingData;
+  }
+
+  /// Grade
+  static Future<void> grade(
+    TrainingData trainingData,
+    int questionIndex,
+    bool correct,
+  ) async {
+    var question = trainingData.questions[questionIndex];
+    var word = question.word;
+
+    // Update the level of a word
+    if (correct) {
+      word.level++;
+    } else {
+      word.level = max(word.level - 1, 1);
+    }
+    await Word.put(word);
+
+    // set question state
+    question.state = correct ? QuestionState.correct : QuestionState.wrong;
+
+    // update the training data
+    await TrainingData.put(trainingData);
+  }
+
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
+
+  /// clean up completed tests
+  static _cleanUpCompleteInstances(_) async {
+    var insts = await TrainingInstance.getAll();
+
+    for (TrainingInstance inst in insts) {
+      // fetch training data
+      var td = await TrainingData.get(inst.trainingId);
+
+      // skip if the training data is already removed
+      if (td == null) {
+        continue;
+      }
+
+      // check if the test is complete
+      if (td.questions.every((e) => e.state != QuestionState.intertermined)) {
+        // remove all instances
+        var allInsts = await TrainingInstance.getAll();
+        var targetInsts = allInsts.where((inst) => inst.trainingId == td.id);
+        var targetInstIds = targetInsts.map((e) => e.id!);
+        TrainingInstance.deletes(targetInstIds.toList());
+
+        // Remove training data
+        await TrainingData.delete(td.id!);
+      }
+    }
+  }
+
+  /// Make practice/test instances and show notifications if necessary
+  /// Called by background worker.
+  ///
+  /// For each live training instance, read trainingIndex.
+  /// If trainingIndex < numAlarmsPerDay, issue a practice instance and increment trainingIndex.
+  /// Otherwise, issue a test instance.
+  ///
+  /// Also, start a new training session if necessary.
+  static void onBackgroundCallback() async {
+    bool alarmEnabled = await LocalSettings.getAlarmEnabled() ?? false;
+
+    if (alarmEnabled) {
+      // for all live training data
+      List<TrainingData> trainingDatas = await TrainingData.getAll();
+
+      // append a new training if necessary
+      int? startWeekday = await _findStartingWeekday();
+      if (startWeekday != null) {
+        // check duplicate
+        if (trainingDatas.every((td) => td.id != startWeekday)) {
+          // create training data
+          TrainingData? trainingData = await createTrainingData();
+
+          // failed to create?
+          if (trainingData == null) {
+            throw 'Unable to create training data';
+          }
+
+          // use startWeekday as training id
+          trainingData.id = startWeekday;
+
+          // save
+          await TrainingData.put(trainingData);
+
+          // refresh training data
+          trainingDatas = await TrainingData.getAll();
+        }
+      }
+
+      // process every live training
+      DateTime now = DateTime.now();
+      for (TrainingData td in trainingDatas) {
+        // Is valid training data?
+        if (td.expiration.isBefore(now)) {
+          // eliminate it if invalid
+          await TrainingData.delete(td.id!);
+        } else {
+          // issue a training instance
+          final int trainingIndex = td.lastTrainingIndex + 1;
+          debugPrint('trainingIndex = $trainingIndex');
+          await _issueTrainingInstance(td.id!, trainingIndex);
+          td.lastTrainingIndex = trainingIndex;
+          await TrainingData.put(td);
+        }
+      }
+    }
+  }
+
+  /// Check if a new training session must begin and return the weekday[0-6] of the beginning datetime
+  /// If no session must be made, return null.
+  ///
+  /// If (current datetime) - (closest past beginning datetime of a training session) < _beginningTolerance
+  /// then make a new training session.
+  static Future<int?> _findStartingWeekday() async {
+    List<bool>? alarmWeekdays = await LocalSettings.getAlarmWeekdays();
+    int? alarmTimeHour = await LocalSettings.getAlarmTimeHour();
+    int? alarmTimeMinute = await LocalSettings.getAlarmTimeMinute();
+
+    if (alarmWeekdays != null &&
+        alarmTimeHour != null &&
+        alarmTimeMinute != null) {
+      DateTime now = DateTime.now();
+      DateTime dt = DateTime(
+          now.year, now.month, now.day, alarmTimeHour, alarmTimeMinute);
+      for (int i = 0; i < 7; i++) {
+        if (dt.isBefore(now) &&
+            dt.isAfter(now.subtract(Duration(minutes: _beginningTolerance))) &&
+            alarmWeekdays[dt.weekday % 7]) {
+          return dt.weekday % 7;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Choose random distinct [numWords] words from dictionary
+  /// Return: List of keys
+  ///
+  /// If the dictionary has less than [numWords] words, then
+  /// the list of all words is returned.
+  static Future<List<int>> _chooseRandomWords(int numWords) async {
+    // get the number of the entire words in the dictionary
+    List<Word> words = await Word.getAll();
+    List<int> ids = words.map((e) => e.id!).toList();
+    int numDictWords = words.length;
+
+    // select words
+    // split into cases by the total number of words in dictionary
+    if (numDictWords == 0) {
+      //-- no word case --//
+      // no training words
+      return [];
+    } else if (numDictWords <= numWords) {
+      //-- the number of total words is no larger than [numWords] --//
+      // put the entire words into the training
+      return ids;
+    } else {
+      //-- the number of total words exceeds numWords --//
+      // compute accumulated weights for words
+      final List<double> accumulatedWeight = List.filled(numDictWords, 0.0);
+      double prevWeight = 0.0;
+      for (int i = 0; i < numDictWords; i++) {
+        double weight = 1.0 / words[i].level;
+        accumulatedWeight[i] = prevWeight + weight;
+        prevWeight = accumulatedWeight[i];
+      }
+
+      // Select random (numTrainingWords)-word
+      final double weightSum = accumulatedWeight[numDictWords - 1];
+      final Random rng = Random();
+      final Set<int> trainingDataIndicesSet = {};
+      while (trainingDataIndicesSet.length != numTrainingWords) {
+        // pick a random number in [0,weightSum)
+        double r = rng.nextDouble() * weightSum;
+
+        // select the corresponding word
+        int index = lowerBound(accumulatedWeight, r);
+
+        // add to the pool
+        trainingDataIndicesSet.add(index);
+      }
+      return trainingDataIndicesSet.map((index) => ids[index]).toList();
+    }
+  }
+
+  static Future<List<Question>> _createQuestions(List<int> wordIds) async {
     List<Question> questions = [];
-    for (var i = 0; i < trainingData.wordIds.length; i++) {
-      var wordId = trainingData.wordIds[i];
+
+    for (var i = 0; i < wordIds.length; i++) {
+      var wordId = wordIds[i];
       Word? word = await Word.get(wordId);
 
       // word is not deleted?
@@ -178,290 +371,46 @@ class Training {
       }
     }
 
-    // add an instance
-    await TestInstance.put(
-      TestInstance(
-        id: instKey,
-        trainingId: trainingId,
-        questions: questions,
-      ),
-    );
+    return questions;
+  }
+
+  static Future<void> _issueTrainingInstance(
+    int trainingId,
+    int trainingIndex,
+  ) async {
+    int instId = _computeTrainingInstanceId(trainingId, trainingIndex);
 
     // notification
-    await NotificationCenter.show(
-      title: t.testNotifier,
-      data: {'trainingId': trainingId},
-      key: _notiKeyTest,
+    final String title =
+        isPractice(trainingIndex) ? t.practiceNotifier : t.testNotifier;
+    var notificationId = await NotificationCenter.show(
+      title: title,
+      data: {'trainingId': trainingId, 'trainingIndex': trainingIndex},
+      key: _notiKey,
     );
 
-    logger.i('Added test instance $instKey');
-  }
-
-  static void onPracticeTapped(Map<String, Object?> data) async {
-    logger.d('onPracticeTapped: $data');
-    assert(data['trainingId'] != null);
-    assert(data['dailyIndex'] != null);
-
-    // Get instance key
-    int trainingId = data['trainingId'] as int;
-    int dailyIndex = data['dailyIndex'] as int;
-    int instKey = _computePracticeInstanceId(trainingId, dailyIndex);
-
-    // Fetch the instance
-    PracticeInstance? inst = await PracticeInstance.get(instKey);
-    if (inst == null) {
-      throw 'No practice instance found by key $instKey';
-    }
-
-    // Popup practice page
-    Navigator.of(Global.navigatorKey.currentContext!).push(
-      MaterialPageRoute(builder: (context) => PracticePage(inst: inst)),
+    // add an instance
+    await TrainingInstance.put(
+      TrainingInstance(
+        id: instId,
+        trainingIndex: trainingIndex,
+        trainingId: trainingId,
+        notificationId: notificationId,
+      ),
     );
   }
 
-  static void onTestTapped(Map<String, Object?> data) async {
-    logger.d('onTestTapped: $data');
-    assert(data['trainingId'] != null);
-
-    // Get instance key
-    int trainingId = data['trainingId'] as int;
-    int instKey = _computeTestInstanceId(trainingId);
-
-    // Fetch the instance
-    TestInstance? inst = await TestInstance.get(instKey);
-    if (inst == null) {
-      throw 'No test instance found by key $instKey';
-    }
-    inst.id = instKey;
-
-    // Popup test page
-    Navigator.of(Global.navigatorKey.currentContext!).push(
-      MaterialPageRoute(builder: (context) => TestPage(inst: inst)),
-    );
-  }
-
-  /// Create and return a list of daily words for training
+  /// Compute the id for a training instance
   ///
-  /// RETURN: null if the list cannot be generated.
-  static Future<TrainingData?> createTrainingData(DateTime expiration) async {
-    TrainingData? trainingData;
-
-    try {
-      //-- select the keys of words --//
-      List<int>? chosenIds;
-
-      // get the number of the entire words in the dictionary
-      List<Word> words = await Word.getAll();
-      List<int> ids = words.map((e) => e.id!).toList();
-      int numDictWords = words.length;
-
-      // select words
-      // split into cases by the total number of words in dictionary
-      if (numDictWords == 0) {
-        //-- no word case --//
-        // no training words
-      } else if (numDictWords <= numTrainingWords) {
-        //-- the number of total words is no larger than numTrainingWords --//
-        // put the entire words into the training
-        chosenIds = ids;
-      } else {
-        //-- the number of total words exceeds numTrainingWords --//
-        // compute accumulated weights for words
-        final List<double> accumulatedWeight = List.filled(numDictWords, 0.0);
-        double prevWeight = 0.0;
-        for (int i = 0; i < numDictWords; i++) {
-          double weight = 1.0 / words[i].level;
-          accumulatedWeight[i] = prevWeight + weight;
-          prevWeight = accumulatedWeight[i];
-        }
-
-        // Select random (numTrainingWords)-word
-        final double weightSum = accumulatedWeight[numDictWords - 1];
-        final Random rng = Random();
-        final Set<int> trainingDataIndicesSet = {};
-        while (trainingDataIndicesSet.length != numTrainingWords) {
-          // pick a random number in [0,weightSum)
-          double r = rng.nextDouble() * weightSum;
-
-          // select the corresponding word
-          int index = lowerBound(accumulatedWeight, r);
-
-          // add to the pool
-          trainingDataIndicesSet.add(index);
-        }
-        chosenIds = trainingDataIndicesSet.map((index) => ids[index]).toList();
-      }
-
-      //-- consolidate everything --//
-      if (chosenIds != null) {
-        trainingData = TrainingData(
-          expiration: expiration,
-          wordIds: chosenIds,
-        );
-      }
-    } on Exception catch (e) {
-      logger.e('creatingTrainingData', e);
-    }
-
-    return trainingData;
+  /// Note that 0 <= [trainingIndex] <= [numAlarmsPerDay]
+  /// Thus, there exist [numAlarmsPerDay] + 1 instances at most for each [trainingId].
+  static int _computeTrainingInstanceId(int trainingId, int trainingIndex) {
+    return trainingId * (numAlarmsPerDay + 1) + trainingIndex;
   }
 
-  /// Update the level of a word
-  static Future<void> grade(Word word, bool correct) async {
-    if (correct) {
-      word.level++;
-    } else {
-      word.level = max(word.level - 1, 1);
-    }
-    return Word.put(word);
-  }
-
-  /// Set the training of a specific weekday
-  /// [weekday] : 0-Sun, ... , 6-Sat
-  static Future<void> setTraining(
-    String deviceId,
-    TimeOfDay time,
-    List<bool> weekdays,
-  ) async {
-    assert(weekdays.length == 7);
-
-    try {
-      // convert to UTC time
-      Map<String, Object> utc = _localToUTC(time, weekdays);
-      TimeOfDay utcAlarmTime = utc["utcAlarmTime"] as TimeOfDay;
-      List<bool> utcAlarmWeekdays = utc["utcAlarmWeekdays"] as List<bool>;
-
-      // convert to schedule string
-      String schedule = _createScheduleString(utcAlarmTime, utcAlarmWeekdays);
-
-      // Set packet body
-      Map<String, String> body = {"deviceId": deviceId, "schedule": schedule};
-
-      // update alarms
-      var res = await Browser.post('/setTraining', body: body);
-
-      // log
-      if (res.statusCode == 200) {
-        logger.i("/setTraining: set training schedule");
-      } else if (res.statusCode < 400) {
-        logger.i("/setTraining: statusCode ${res.statusCode}");
-      } else {
-        logger.e("/setTraining: statusCode ${res.statusCode}");
-        throw "/setTraining: statusCode ${res.statusCode}";
-      }
-    } catch (e) {
-      logger.e('setTraining', e);
-      Global.showFailure();
-    }
-  }
-
-  /// Cancel training
-  static Future<void> cancelTraining(String deviceId) async {
-    try {
-      // Set packet body
-      Map<String, String> body = {"deviceId": deviceId};
-
-      // update alarms
-      var res = await Browser.post('/setTraining', body: body);
-
-      // log
-      if (res.statusCode == 200) {
-        logger.i("/setTraining: canceled training schedule");
-      } else if (res.statusCode < 400) {
-        logger.i("/setTraining: statusCode ${res.statusCode}");
-      } else {
-        logger.e("/setTraining: statusCode ${res.statusCode}");
-        throw "/setTraining: statusCode ${res.statusCode}";
-      }
-    } catch (e) {
-      logger.e('cancelTraining', e);
-      Global.showFailure();
-    }
-  }
-
-  //---------------------------------------------------------------//
-  //        internal methods
-  //---------------------------------------------------------------//
-
-  /// Compute the id for a practice instance
-  static int _computePracticeInstanceId(int trainingId, int dailyIndex) {
-    return trainingId * 256 + dailyIndex;
-  }
-
-  /// Compute the id for a practice instance
-  static int _computeTestInstanceId(int trainingId) {
-    return trainingId;
-  }
-
-  /// clean up when a test is completed
-  static _onTestInstanceChange(_) async {
-    var testInsts = await TestInstance.getAll();
-
-    for (TestInstance testInst in testInsts) {
-      // check if the instance is complete
-      if (testInst.questions
-          .every((e) => e.state != QuestionState.intertermined)) {
-        // remove all practice instances using the training data
-        var pracInsts = await PracticeInstance.getAll();
-        var accompaniedPracInsts = pracInsts
-            .where((pracInst) => pracInst.trainingId == testInst.trainingId);
-        var accompaniedPracInstIds = accompaniedPracInsts.map((e) => e.id!);
-        PracticeInstance.deletes(accompaniedPracInstIds.toList());
-
-        // Remove completed test instance and training data
-        await TestInstance.delete(testInst.id!);
-        await TrainingData.delete(testInst.trainingId);
-      }
-    }
-  }
-
-  /// Create and return a new alarmTime and alarmWeekdays,
-  /// chaging timezone to UTC
-  ///
-  /// RETURN: [newAlarmTime, newAlarmWeekdays]
-  static Map<String, Object> _localToUTC(
-      TimeOfDay alarmTime, List<bool> alarmWeekdays) {
-    TimeOfDay utcAlarmTime;
-    List<bool> utcAlarmWeekdays = List<bool>.from(alarmWeekdays);
-
-    // Get timezone offset in minute
-    int timeZoneOffset = DateTime.now().timeZoneOffset.inMinutes;
-
-    // Check if weekdays must be adjusted
-    int alarmTimeInMinute = alarmTime.hour * 60 + alarmTime.minute;
-    if (alarmTimeInMinute < timeZoneOffset) {
-      //-- weekdays should be adjusted by 1 --//
-      int diffComplement = alarmTimeInMinute - timeZoneOffset + 24 * 60;
-      utcAlarmTime = TimeOfDay(
-        hour: (diffComplement / 60).floor(),
-        minute: diffComplement % 60,
-      );
-
-      // rotate left the weekdays by 1
-      for (int i = 0; i < 7; i++) {
-        utcAlarmWeekdays[i] = alarmWeekdays[(i + 1) % 7];
-      }
-    } else {
-      //-- no weekday adjustment is necessary --//
-      utcAlarmTime = TimeOfDay(
-        hour: ((alarmTimeInMinute - timeZoneOffset) / 60).floor(),
-        minute: (alarmTimeInMinute - timeZoneOffset) % 60,
-      );
-    }
-
-    return {
-      "utcAlarmTime": utcAlarmTime,
-      "utcAlarmWeekdays": utcAlarmWeekdays,
-    };
-  }
-
-  /// Construct server-acceptable schedule string
-  /// See `annoyer2-server/training.go` for detail
-  static String _createScheduleString(
-      TimeOfDay alarmTime, List<bool> alarmWeekdays) {
-    String hh = alarmTime.hour.toString().padLeft(2, '0');
-    String mm = alarmTime.minute.toString().padLeft(2, '0');
-    String w7 = alarmWeekdays.map((e) => (e ? '1' : '0')).join();
-    return '$hh$mm$w7';
+  /// Check if trainingIndex indicates a practice instance.
+  /// False if it does a test instance.
+  static bool isPractice(int trainingIndex) {
+    return trainingIndex < numPracticeAlarmsPerDay;
   }
 }
