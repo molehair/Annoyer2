@@ -1,22 +1,23 @@
 import 'package:annoyer/database/question_ask_word.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/question.dart';
 import 'package:annoyer/i18n/strings.g.dart';
-import 'package:annoyer/log.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 class AskWordWidget extends StatefulWidget {
-  final int testInstKey;
-  final QuestionAskWord question;
+  final TrainingData trainingData;
+  final int questionIndex;
+  final QuestionAskWord _question;
 
-  const AskWordWidget({
+  AskWordWidget({
     Key? key,
-    required this.testInstKey,
-    required this.question,
-  }) : super(key: key);
+    required this.trainingData,
+    required this.questionIndex,
+  })  : _question = trainingData.questions[questionIndex] as QuestionAskWord,
+        super(key: key);
 
   @override
   _AskWordWidgetState createState() => _AskWordWidgetState();
@@ -31,32 +32,22 @@ class _AskWordWidgetState extends State<AskWordWidget>
     String? answer = chosen?.name;
 
     // grade
-    if (answer != null && answer == widget.question.word.name) {
+    if (answer != null && answer == widget._question.word.name) {
       //-- correct --//
       // set question state
-      widget.question.state = QuestionState.correct;
+      widget._question.state = QuestionState.correct;
 
-      // update word level
+      // update training data
       // As this takes long time with firestore, do asynchronously
-      Training.grade(widget.question.word, true);
+      Training.grade(widget.trainingData, widget.questionIndex, true);
     } else {
       //-- wrong --//
       // set question state
-      widget.question.state = QuestionState.wrong;
+      widget._question.state = QuestionState.wrong;
 
-      // update word level
+      // update training data
       // As this takes long time with firestore, do asynchronously
-      Training.grade(widget.question.word, false);
-    }
-
-    // update to db
-    widget.question.usersAnswer = answer;
-    TestInstance? inst = await TestInstance.get(widget.testInstKey);
-    if (inst != null) {
-      inst.questions[widget.question.index] = widget.question;
-      await TestInstance.put(inst);
-    } else {
-      logger.e('Unable to get test instance with key ${widget.testInstKey}.');
+      Training.grade(widget.trainingData, widget.questionIndex, false);
     }
 
     // update the current page
@@ -86,7 +77,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // word
           Text(
-            widget.question.blankfiedEx,
+            widget._question.blankfiedEx,
             style: const TextStyle(fontSize: 20),
             textAlign: TextAlign.center,
           ),
@@ -94,10 +85,10 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // answer field
           Visibility(
-            visible: widget.question.state == QuestionState.intertermined,
+            visible: widget._question.state == QuestionState.intertermined,
             child: TypeAheadField(
               textFieldConfiguration: TextFieldConfiguration(
-                // enabled: widget.question.state == QuestionState.intertermined,
+                // enabled: widget._question.state == QuestionState.intertermined,
                 // autofocus: true,
                 style: DefaultTextStyle.of(context)
                     .style
@@ -156,7 +147,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // wrong
           Visibility(
-            visible: widget.question.state == QuestionState.wrong,
+            visible: widget._question.state == QuestionState.wrong,
             child: Card(
               child: ListTile(
                 leading: const Icon(
@@ -164,7 +155,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
                   color: Colors.red,
                 ),
                 title: Text(
-                  widget.question.usersAnswer ?? '',
+                  widget._question.usersAnswer ?? '',
                   // style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -174,7 +165,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // correct answer
           Visibility(
-            visible: widget.question.state != QuestionState.intertermined,
+            visible: widget._question.state != QuestionState.intertermined,
             child: Card(
               child: ListTile(
                 leading: const Icon(
@@ -182,7 +173,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
                   color: Colors.green,
                 ),
                 title: Text(
-                  widget.question.word.name,
+                  widget._question.word.name,
                   // style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -195,7 +186,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
             child: ListTile(
               leading: const Icon(Icons.short_text_outlined),
               title: Text(
-                _viewDef ? widget.question.word.def : t.viewDefinition,
+                _viewDef ? widget._question.word.def : t.viewDefinition,
                 style: _viewDef
                     ? null
                     : const TextStyle(fontStyle: FontStyle.italic),
@@ -209,14 +200,14 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // view mnemonic
           Visibility(
-            visible: widget.question.word.mnemonic != null &&
-                widget.question.word.mnemonic != '',
+            visible: widget._question.word.mnemonic != null &&
+                widget._question.word.mnemonic != '',
             child: Card(
               child: ListTile(
                 leading: const Icon(Icons.lightbulb_outline),
                 title: Text(
                   _viewMnemonic
-                      ? widget.question.word.mnemonic ?? ''
+                      ? widget._question.word.mnemonic ?? ''
                       : t.viewMnemonic,
                   style: _viewMnemonic
                       ? null
@@ -232,7 +223,7 @@ class _AskWordWidgetState extends State<AskWordWidget>
 
           // give up button
           Visibility(
-            visible: widget.question.state == QuestionState.intertermined,
+            visible: widget._question.state == QuestionState.intertermined,
             child: TextButton(
               onPressed: () => _grade(null),
               child: Text(t.giveUp),

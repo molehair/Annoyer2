@@ -1,21 +1,23 @@
 import 'package:annoyer/database/question_ask_definition.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/question.dart';
 import 'package:annoyer/i18n/strings.g.dart';
-import 'package:annoyer/log.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
 
 class AskDefinitionWidget extends StatefulWidget {
-  final int testInstKey;
-  final QuestionAskDefinition question;
+  final TrainingData trainingData;
+  final int questionIndex;
+  final QuestionAskDefinition _question;
 
-  const AskDefinitionWidget({
+  AskDefinitionWidget({
     Key? key,
-    required this.testInstKey,
-    required this.question,
-  }) : super(key: key);
+    required this.trainingData,
+    required this.questionIndex,
+  })  : _question =
+            trainingData.questions[questionIndex] as QuestionAskDefinition,
+        super(key: key);
 
   @override
   State<AskDefinitionWidget> createState() => _AskDefinitionWidgetState();
@@ -27,35 +29,27 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
   bool _viewExample = false;
 
   void _grade(int? usersChoice) async {
+    widget._question.usersChoice = usersChoice;
+
     // grade
     if (usersChoice != null &&
-        widget.question.choices[usersChoice].name ==
-            widget.question.word.name) {
+        widget._question.choices[usersChoice].name ==
+            widget._question.word.name) {
       //-- correct --//
       // set question state
-      widget.question.state = QuestionState.correct;
+      widget._question.state = QuestionState.correct;
 
-      // update word level
+      // update training data
       // As this takes long time with firestore, do asynchronously
-      Training.grade(widget.question.word, true);
+      Training.grade(widget.trainingData, widget.questionIndex, true);
     } else {
       //-- wrong --//
       // set question state
-      widget.question.state = QuestionState.wrong;
+      widget._question.state = QuestionState.wrong;
 
-      // update word level
+      // update training data
       // As this takes long time with firestore, do asynchronously
-      Training.grade(widget.question.word, false);
-    }
-
-    // update to db
-    TestInstance? inst = await TestInstance.get(widget.testInstKey);
-    if (inst != null) {
-      widget.question.usersChoice = usersChoice;
-      inst.questions[widget.question.index] = widget.question;
-      await TestInstance.put(inst);
-    } else {
-      logger.e('Unable to get test instance with key ${widget.testInstKey}.');
+      Training.grade(widget.trainingData, widget.questionIndex, false);
     }
 
     // update the current page
@@ -68,9 +62,9 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
 
     // Set color for the target word depending on the correctness state
     Color? wordColor;
-    if (widget.question.state == QuestionState.correct) {
+    if (widget._question.state == QuestionState.correct) {
       wordColor = Colors.green;
-    } else if (widget.question.state == QuestionState.wrong) {
+    } else if (widget._question.state == QuestionState.wrong) {
       wordColor = Colors.red;
     }
 
@@ -93,7 +87,7 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
 
           // word
           Text(
-            widget.question.word.name,
+            widget._question.word.name,
             style: TextStyle(fontSize: 30, color: wordColor),
             textAlign: TextAlign.center,
           ),
@@ -101,14 +95,14 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
 
           // choices
           Table(
-            children: widget.question.choices.asMap().entries.map((e) {
+            children: widget._question.choices.asMap().entries.map((e) {
               int index = e.key;
               Word word = e.value;
 
-              QuestionState state = widget.question.state;
-              int? usersChoice = widget.question.usersChoice;
+              QuestionState state = widget._question.state;
+              int? usersChoice = widget._question.usersChoice;
               Word? usersChoiceWord = usersChoice != null
-                  ? widget.question.choices[usersChoice]
+                  ? widget._question.choices[usersChoice]
                   : null;
 
               // leading
@@ -120,7 +114,7 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
                     usersChoiceWord.def == word.def) {
                   // wrong choice
                   leading = const Icon(Icons.close_outlined, color: Colors.red);
-                } else if (word.def == widget.question.word.def) {
+                } else if (word.def == widget._question.word.def) {
                   // correct answer
                   leading =
                       const Icon(Icons.check_outlined, color: Colors.green);
@@ -129,12 +123,12 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
 
               // enable?
               bool enabled = true;
-              if (widget.question.state != QuestionState.intertermined) {
+              if (widget._question.state != QuestionState.intertermined) {
                 // Disable candidates which is not the user's choice
                 // nor correct answer after grading
                 if ((usersChoiceWord == null ||
                         usersChoiceWord.def != word.def) &&
-                    widget.question.word.def != word.def) {
+                    widget._question.word.def != word.def) {
                   enabled = false;
                 }
               }
@@ -158,7 +152,7 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
             child: ListTile(
               leading: const Icon(Icons.notes_outlined),
               title: Text(
-                _viewExample ? widget.question.word.ex : t.viewExample,
+                _viewExample ? widget._question.word.ex : t.viewExample,
                 style: _viewExample
                     ? null
                     : const TextStyle(fontStyle: FontStyle.italic),
@@ -169,14 +163,14 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
             ),
           ),
           Visibility(
-            visible: widget.question.word.mnemonic != null &&
-                widget.question.word.mnemonic != '',
+            visible: widget._question.word.mnemonic != null &&
+                widget._question.word.mnemonic != '',
             child: Card(
               child: ListTile(
                 leading: const Icon(Icons.lightbulb_outline),
                 title: Text(
                   _viewMnemonic
-                      ? widget.question.word.mnemonic ?? ''
+                      ? widget._question.word.mnemonic ?? ''
                       : t.viewMnemonic,
                   style: _viewMnemonic
                       ? null
@@ -192,7 +186,7 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
 
           // give up button
           Visibility(
-            visible: widget.question.state == QuestionState.intertermined,
+            visible: widget._question.state == QuestionState.intertermined,
             child: TextButton(
               onPressed: () => _grade(null),
               child: Text(t.giveUp),

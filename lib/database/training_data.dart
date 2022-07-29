@@ -7,6 +7,9 @@ import 'dart:convert';
 import 'package:isar/isar.dart';
 
 import 'database.dart';
+import 'question.dart';
+import 'question_ask_definition.dart';
+import 'question_ask_word.dart';
 
 part 'training_data.g.dart';
 
@@ -19,8 +22,18 @@ class TrainingData {
   @Id()
   int? id;
 
+  /// list of words to use
   List<int> wordIds;
+
+  /// only valid before this datetime
   DateTime expiration;
+
+  /// list of questions for the test
+  @_QuestionsConverter()
+  List<Question> questions;
+
+  /// the previously issued training index
+  int lastTrainingIndex = -1;
 
   //---------------------------------------------------------------//
   //        static variables
@@ -34,23 +47,37 @@ class TrainingData {
     this.id,
     required this.wordIds,
     required this.expiration,
+    required this.questions,
   });
-
-  /// RETURN true if the training data is good to use
-  bool isValid() {
-    // expiration check
-    return expiration.isAfter(DateTime.now());
-  }
 
   TrainingData.fromMap(Map<String, Object?> map)
       : id = map['id'] as int,
         wordIds = List.castFrom(map['wordIds'] as List),
-        expiration = map['expiration'] as DateTime;
+        expiration = map['expiration'] as DateTime,
+        questions =
+            List<Question>.generate((map['questions'] as List).length, (i) {
+          var qMap = (map['questions'] as List)[i];
+          Question q = Question.fromMap(qMap);
+          switch (q.type) {
+            case QuestionType.askDefinition:
+              q = QuestionAskDefinition.fromMap(qMap);
+              break;
+            case QuestionType.askWord:
+              q = QuestionAskWord.fromMap(qMap);
+              break;
+            default:
+              throw 'Unknown question type during _load()';
+          }
+          return q;
+        }),
+        lastTrainingIndex = map['lastTrainingIndex'] as int;
 
   Map<String, Object?> toMap() {
     Map<String, Object?> map = {
       'wordIds': wordIds,
       'expiration': expiration,
+      'questions': questions.map((e) => e.toMap()).toList(),
+      'lastTrainingIndex': lastTrainingIndex,
     };
     if (id != null) {
       map['id'] = id!;
@@ -117,4 +144,37 @@ class TrainingData {
   //---------------------------------------------------------------//
   //        internal methods
   //---------------------------------------------------------------//
+}
+
+class _QuestionsConverter extends TypeConverter<List<Question>, String> {
+  // Converters need to have an empty const constructor
+  const _QuestionsConverter();
+
+  @override
+  List<Question> fromIsar(String jsonString) {
+    List rawList = List.castFrom(jsonDecode(jsonString));
+
+    // questions before figuring out question types
+    List<Question> questionsUnknown =
+        rawList.map((e) => Question.fromMap(e)).toList();
+
+    // create questions
+    List<Question> questions = [];
+    for (var i = 0; i < rawList.length; i++) {
+      var type = questionsUnknown[i].type;
+      if (type == QuestionType.askDefinition) {
+        questions.add(QuestionAskDefinition.fromMap(rawList[i]));
+      }
+      if (type == QuestionType.askWord) {
+        questions.add(QuestionAskWord.fromMap(rawList[i]));
+      }
+    }
+
+    return questions;
+  }
+
+  @override
+  String toIsar(List<Question> questions) {
+    return jsonEncode(questions.map((e) => e.toMap()).toList());
+  }
 }
