@@ -1,5 +1,4 @@
 import 'package:annoyer/database/local_settings.dart';
-import 'package:annoyer/database/log_item.dart';
 import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
@@ -38,7 +37,6 @@ class Database {
         WordSchema,
         TrainingInstanceSchema,
         TrainingDataSchema,
-        LogItemSchema,
         LocalSettingsSchema,
       ],
       directory: dir.path,

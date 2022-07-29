@@ -36,7 +36,7 @@ class Sync {
     // update fcmToken
     String? token = await FirebaseMessaging.instance.getToken();
     if (token == null) {
-      logger.e("Sync: unable to fetch fcm token");
+      Log.error("Sync: unable to fetch fcm token");
     } else {
       _onTokenRefresh(token);
     }
@@ -64,7 +64,7 @@ class Sync {
     // load deviceId
     String? deviceId = await LocalSettings.getDeviceId();
     if (deviceId == null) {
-      logger.e('Sync: Empty device Id');
+      Log.error('Sync: Empty device Id');
       return;
     }
 
@@ -76,11 +76,11 @@ class Sync {
 
     // log
     if (res.statusCode == 200) {
-      logger.i("Refreshed token");
+      Log.info("Refreshed token");
     } else if (res.statusCode < 400) {
-      logger.i("/refreshToken: statusCode ${res.statusCode}");
+      Log.info("/refreshToken: statusCode ${res.statusCode}");
     } else {
-      logger.e("/refreshToken: statusCode ${res.statusCode}");
+      Log.error("/refreshToken: statusCode ${res.statusCode}");
     }
   }
 }

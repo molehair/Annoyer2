@@ -151,7 +151,7 @@ class Training {
         );
       }
     } on Exception catch (e) {
-      logger.e('creatingTrainingData', e);
+      Log.error('creatingTrainingData', exception: e);
     }
 
     return trainingData;

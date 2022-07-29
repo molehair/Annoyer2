@@ -16,35 +16,39 @@ import 'training.dart';
 Future<void> initialization() async {
   // The initialization order must be maintained.
 
+  // log
+  await Log.initialization();
+  Log.info('Initialized Log system');
+
   // local database
   await Database.initialization();
-  logger.i('Initialized Local Database');
+  Log.info('Initialized Local Database');
 
   // firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  logger.i('Initialized Firebase');
+  Log.info('Initialized Firebase');
 
   // background worker
   await BackgroundWorker.initialization();
-  logger.i('Initialized Background worker');
+  Log.info('Initialized Background worker');
 
   // sync
   await Sync.initialization();
-  logger.i('Initialized Sync');
+  Log.info('Initialized Sync');
 
   // notification center
   await NotificationCenter.initialization();
-  logger.i('Initialized Notification center');
+  Log.info('Initialized Notification center');
 
   // word
   await Word.initialization();
-  logger.i('Initialized Word');
+  Log.info('Initialized Word');
 
   // training system
   await Training.initialization();
-  logger.i('Initialized Training');
+  Log.info('Initialized Training');
 }
 
 void main() async {

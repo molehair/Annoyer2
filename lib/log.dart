@@ -1,38 +1,78 @@
-// Log system
+import 'package:flutter_logs/flutter_logs.dart';
 
-import 'package:annoyer/database/database.dart';
-import 'package:annoyer/database/log_item.dart';
-import 'package:flutter/foundation.dart';
-import 'package:logger/logger.dart';
+class Log {
+  //---------------------------------------------------------------//
+  //        instance variables
+  //---------------------------------------------------------------//
 
-var _consoleLogOutput = ConsoleOutput();
-var _dbLogOutput = _DBLog();
-var _releaseModeFilter = _ReleaseModeFilter();
+  //---------------------------------------------------------------//
+  //        static variables
+  //---------------------------------------------------------------//
 
-Logger logger = Logger(
-  printer: SimplePrinter(printTime: true),
-  output: kDebugMode
-      ? MultiOutput([_consoleLogOutput, _dbLogOutput])
-      : _dbLogOutput,
-  filter: kDebugMode ? null : _releaseModeFilter,
-);
+  /// Initialized this class?
+  static bool _inited = false;
 
-class _ReleaseModeFilter extends LogFilter {
-  @override
-  bool shouldLog(LogEvent event) {
-    return event.level == Level.info ||
-        event.level == Level.error ||
-        event.level == Level.warning ||
-        event.level == Level.wtf;
+  //---------------------------------------------------------------//
+  //        exported methods
+  //---------------------------------------------------------------//
+
+  static Future<void> initialization() async {
+    // init only once
+    if (_inited) {
+      return;
+    }
+
+    //Initialize Logging
+    await FlutterLogs.initLogs(
+      logLevelsEnabled: [
+        LogLevel.INFO,
+        LogLevel.WARNING,
+        LogLevel.ERROR,
+        LogLevel.SEVERE
+      ],
+      timeStampFormat: TimeStampFormat.TIME_FORMAT_READABLE,
+      directoryStructure: DirectoryStructure.FOR_DATE,
+      logTypesEnabled: ["device", "network", "errors"],
+      logFileExtension: LogFileExtension.LOG,
+      logsWriteDirectoryName: "MyLogs",
+      logsExportDirectoryName: "MyLogs/Exported",
+      debugFileOperations: true,
+      isDebuggable: true,
+    );
+
+    // mark as finished initialization
+    _inited = true;
   }
-}
 
-class _DBLog extends LogOutput {
-  @override
-  void output(OutputEvent event) async {
-    await Database.isar.writeTxn((isar) async {
-      await Database.isar.logItems
-          .putAll(event.lines.map((e) => LogItem(e)).toList());
-    });
+  static Future<void> info(String msg, {String? tag, String? subTag}) {
+    return FlutterLogs.logInfo(tag ?? '', subTag ?? '', msg);
   }
+
+  static Future<void> warn(String msg, {String? tag, String? subTag}) {
+    return FlutterLogs.logWarn(tag ?? '', subTag ?? '', msg);
+  }
+
+  static Future<void> error(
+    String msg, {
+    Exception? exception,
+    String? tag,
+    String? subTag,
+  }) {
+    return FlutterLogs.logThis(
+      tag: tag ?? '',
+      subTag: subTag ?? '',
+      logMessage: msg,
+      exception: exception,
+      level: LogLevel.ERROR,
+    );
+  }
+
+  /// Erase all logs
+  static Future<void> clear() {
+    return FlutterLogs.clearLogs();
+  }
+
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
 }

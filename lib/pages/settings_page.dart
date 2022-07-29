@@ -88,14 +88,14 @@ class _SettingsState extends State<SettingsPage> {
       await LocalSettings.setAlarmEnabled(newAlarmEnabled);
 
       // log
-      logger.d('newAlarmEnabled: $newAlarmEnabled');
+      Log.info('newAlarmEnabled: $newAlarmEnabled');
 
       // update the state
       setState(() {
         _alarmEnabled = newAlarmEnabled;
       });
-    } catch (e) {
-      logger.e('_alarmSwitch', e);
+    } on Exception catch (e) {
+      Log.error('_alarmSwitch in SettingsPage', exception: e);
       Global.showFailure();
     }
   }
@@ -119,14 +119,14 @@ class _SettingsState extends State<SettingsPage> {
       await LocalSettings.setAlarmTimeMinute(newAlarmTime.minute);
 
       // log
-      logger.d('newAlarmTime: $newAlarmTime');
+      Log.info('newAlarmTime: $newAlarmTime');
 
       // update the state
       setState(() {
         _alarmTime = newAlarmTime;
       });
-    } catch (e) {
-      logger.e('_onAlarmTimeChange', e);
+    } on Exception catch (e) {
+      Log.error('_onAlarmTimeChange in SettingsPage', exception: e);
       Global.showFailure();
     }
   }
@@ -143,14 +143,14 @@ class _SettingsState extends State<SettingsPage> {
       await LocalSettings.setAlarmWeekdays(newAlarmWeekdays);
 
       // log
-      logger.d('newAlarmWeekdays: $newAlarmWeekdays');
+      Log.info('newAlarmWeekdays: $newAlarmWeekdays');
 
       // update the state
       setState(() {
         _alarmWeekdays = newAlarmWeekdays;
       });
-    } catch (e) {
-      logger.e('_toggleWeekday', e);
+    } on Exception catch (e) {
+      Log.error('_toggleWeekday in SettingsPage', exception: e);
       Global.showFailure();
     }
   }
@@ -187,8 +187,9 @@ class _SettingsState extends State<SettingsPage> {
         // delete the backup file
         await backupFile.delete();
       }
-    } catch (e) {
-      logger.e('_backup', e);
+    } on Exception catch (e) {
+      Log.error('_backup in SettingsPage', exception: e);
+      Global.showFailure();
     }
   }
 
@@ -232,8 +233,9 @@ class _SettingsState extends State<SettingsPage> {
           type: ShowMessageType.error,
         );
       }
-    } catch (e) {
-      logger.e('_restore', e);
+    } on Exception catch (e) {
+      Log.error('_restore in SettingsPage', exception: e);
+      Global.showFailure();
     }
   }
 

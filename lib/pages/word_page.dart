@@ -69,7 +69,7 @@ class WordPage extends StatelessWidget {
 
         retval = true;
       } on Exception catch (e) {
-        logger.e('set', e);
+        Log.error('set in WordPage', exception: e);
       }
     }
     return retval;
@@ -86,7 +86,7 @@ class WordPage extends StatelessWidget {
       // show success
       Global.showSuccess();
     } on Exception catch (e) {
-      logger.e('delete', e);
+      Log.error('delete in WordPage', exception: e);
     }
   }
 
