@@ -91,6 +91,11 @@ class NotificationCenter {
     return _id - 1;
   }
 
+  /// cancel a live notification
+  static Future<void> cancel(int id) {
+    return flutterLocalNotificationsPlugin.cancel(id);
+  }
+
   /// Upon a notificaiton with [key] is tapped, [callback] is called.
   /// If [key] is already registered, the new [callback] will override the old one.
   static setOnTapCallback(
