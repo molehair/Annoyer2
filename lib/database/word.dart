@@ -39,7 +39,6 @@ class Word {
   static bool _inited = false;
 
   /// indexes
-  /// use `key`(type: int) in a box as value of index
   static final WordIndex<int> nameIndex = WordIndex<int>(fullTextMode: true);
   static final WordIndex<int> defIndex = WordIndex<int>();
 

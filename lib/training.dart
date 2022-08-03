@@ -261,7 +261,6 @@ class Training {
         } else {
           // issue a training instance
           final int trainingIndex = td.lastTrainingIndex + 1;
-          debugPrint('trainingIndex = $trainingIndex');
           await _issueTrainingInstance(td.id!, trainingIndex);
           td.lastTrainingIndex = trainingIndex;
           await TrainingData.put(td);
