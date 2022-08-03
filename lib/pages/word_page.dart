@@ -22,7 +22,10 @@ class WordPage extends StatelessWidget {
     Key? key,
     this.word,
   })  : createMode = word == null,
-        super(key: key);
+        super(key: key) {
+    // add callback for post-build process
+    WidgetsBinding.instance.addPostFrameCallback(_postBuild);
+  }
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _defController = TextEditingController();
@@ -37,7 +40,7 @@ class WordPage extends StatelessWidget {
   PredefinedWord? _suggestion;
 
   /// true if successfully inserted or updated
-  Future<bool> set(BuildContext context) async {
+  Future<bool> _set(BuildContext context) async {
     bool retval = false;
 
     // Is the form valid?
@@ -78,7 +81,9 @@ class WordPage extends StatelessWidget {
         Navigator.of(context).pop();
 
         // show success
-        Global.showSuccess();
+        Global.showSuccess(context);
+
+        debugPrint('success');
 
         retval = true;
       } on Exception catch (e) {
@@ -88,7 +93,7 @@ class WordPage extends StatelessWidget {
     return retval;
   }
 
-  void delete(BuildContext context) async {
+  void _delete(BuildContext context) async {
     try {
       await Word.delete(word!.id!);
 
@@ -97,7 +102,7 @@ class WordPage extends StatelessWidget {
       Navigator.of(context).pop();
 
       // show success
-      Global.showSuccess();
+      Global.showSuccess(context);
     } on Exception catch (e) {
       Log.error('delete in WordPage', exception: e);
     }
@@ -112,6 +117,13 @@ class WordPage extends StatelessWidget {
     return null;
   }
 
+  void _postBuild(_) {
+    // focus name if new
+    if (word == null) {
+      _nameFocusNode.requestFocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final _title = createMode ? t.newWord : t.updateWord;
@@ -123,7 +135,7 @@ class WordPage extends StatelessWidget {
     // FloatingActionButtons
     List<Widget> buttons = [
       FloatingActionButton(
-        onPressed: () => set(context),
+        onPressed: () => _set(context),
         child: const Icon(Icons.check),
         heroTag: null,
       ),
@@ -133,7 +145,7 @@ class WordPage extends StatelessWidget {
       buttons.insert(
         0,
         FloatingActionButton(
-          onPressed: () => delete(context),
+          onPressed: () => _delete(context),
           child: const Icon(Icons.delete),
           heroTag: null,
         ),
@@ -168,7 +180,6 @@ class WordPage extends StatelessWidget {
                     ),
                   ),
                   controller: _nameController,
-                  autofocus: word == null,
                   focusNode: _nameFocusNode,
                   textInputAction: TextInputAction.next,
                   onChanged: (_) =>
@@ -317,6 +328,7 @@ class WordPage extends StatelessWidget {
                     ),
                   ),
                   labelText: t.mnemonic,
+                  hintText: t.optional,
                 ),
                 controller: _mnemonicController,
                 maxLines: null,

@@ -57,5 +57,6 @@
   "askDefinition": "What is the definition of",
   "askWord": "Fill in the blanks in the following sentence.",
   "dataManagement": "Data management",
-  "sync": "Sync"
+  "sync": "Sync",
+  "optional": "Optional"
 }
