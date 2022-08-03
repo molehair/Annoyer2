@@ -1,10 +1,9 @@
+import 'dart:collection';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:annoyer/database/question.dart';
 import 'package:annoyer/database/word.dart';
-import 'package:annoyer/global.dart';
-
-const _blank = '___';
 
 class QuestionAskWord extends Question {
   //---------------------------------------------------------------//
@@ -15,6 +14,8 @@ class QuestionAskWord extends Question {
   //---------------------------------------------------------------//
   //        static variables
   //---------------------------------------------------------------//
+
+  static const blank = '___';
 
   //---------------------------------------------------------------//
   //        exported methods
@@ -47,19 +48,14 @@ class QuestionAskWord extends Question {
   }
 
   String get blankfiedEx {
-    return _blankify(word.ex, word.name);
+    return blankify(word.ex, word.name);
   }
-
-  //---------------------------------------------------------------//
-  //        internal methods
-  //---------------------------------------------------------------//
 
   /// Replace `term`(s) in `sentence` with `blank`
   ///
   /// If a term is a single word, then every occurrence is replaced.
-  /// Otherwise, only one occurrence is applied whose end-to-end distance
-  /// is the shortest. The end-to-end distance is (endIndex - beginIndex) of
-  /// the term when the sentence is split into words.
+  /// Otherwise, at most one occurrence is applied whose end-to-end distance,
+  /// (endIndex - beginIndex) of the term, is the shortest.
   ///
   /// example 1
   ///   sentence = 'He pushed the door again and again.'
@@ -71,199 +67,243 @@ class QuestionAskWord extends Question {
   ///   sentence = 'As a long journey ends, Jenny falls asleep as long as possible.'
   ///   term = 'as long as'
   ///   correctly blankified example = 'As a long journey ends, Jenny falls asleep __ __ __ possible.'
-  ///   incorrectly blankified example = '__ a __ journey ends, Jenny falls asleep __ long as possible.'
-  ///   explanation: There are two occurrences of `as long as`.
-  ///                The first one has the end-to-end distance 8-0=8.
-  ///                The second one has the end-to-end distance 10-8=2.
-  ///                Thus, the second occurrence was chosen.
-  String _blankify(String sentence, String term, {String blank = _blank}) {
-    // split by spaces
-    final List<String> sentenceSplitted = sentence.split(' ');
-    final List<String> termSplitted = term.split(' ');
-
-    // Map each word to an integer and convert term into integer representation
-    final Map<String, int> wordMap = {};
-    final List<int> termConverted = [];
-    for (String w in termSplitted) {
-      String processedWord = _processWord(w);
-      if (!wordMap.containsKey(processedWord)) {
-        wordMap[processedWord] = wordMap.length;
-      }
-      termConverted.add(wordMap[processedWord]!);
-    }
-
-    // convert example sentence into integer list
-    final List<int> sentenceConverted = [];
-    final List<int> sentenceIndices = [];
-    for (int i = 0; i < sentenceSplitted.length; i++) {
-      String word = sentenceSplitted[i];
-      String processedWord = _processWord(word);
-      String? matchedWord = _matchingWord(wordMap, processedWord);
-
-      if (matchedWord != null) {
-        // `word` or its one of variants matches a word in the map
-        sentenceIndices.add(i);
-        sentenceConverted.add(wordMap[matchedWord]!);
+  ///   explanation: Among the following four possible candidates,
+  ///                the correct answer above reveals the shortest end-to-end distance.
+  ///                   '__ a __ journey ends, Jenny falls asleep __ long as possible.'
+  ///                   '__ a __ journey ends, Jenny falls asleep as long __ possible.'
+  ///                   '__ a long journey ends, Jenny falls asleep as __ __ possible.'
+  ///                   'As a long journey ends, Jenny falls asleep __ __ __ possible.'
+  static String blankify(String sentence, String term, {String blank = blank}) {
+    // split the term
+    List<String> splittedTerms = [];
+    for (var t in term.split(' ')) {
+      t = t.trim();
+      if (t.isNotEmpty) {
+        splittedTerms.add(t.toLowerCase());
       }
     }
 
-    // find matching patterns
-    final List<int> patternIndices =
-        _findPattern(sentenceConverted, termConverted);
-
-    // select occurrence(s) to be blankifed
-    final List<int> selectedIndices = [];
-    if (termSplitted.length == 1) {
-      // blankify every occurrences
-      for (int index in patternIndices) {
-        selectedIndices.add(sentenceIndices[index]);
+    // Find all beginning indices and length of matching words
+    List<List<int>> allMatchingIndices = [];
+    List<List<int>> allMatchingLengths = [];
+    for (var splittedTerm in splittedTerms) {
+      // Create {index: len} for single term
+      var matchingBeginIndicesMap = SplayTreeMap<int, int>();
+      for (var variant in _getVariantsOf(splittedTerm)) {
+        var I = _findMatchingBeginIndices(sentence, variant);
+        int l = variant.length;
+        for (int i in I) {
+          matchingBeginIndicesMap[i] = matchingBeginIndicesMap.containsKey(i)
+              ? max(matchingBeginIndicesMap[i]!, l)
+              : l;
+        }
       }
+
+      // pack in acending order
+      List<int> matchingIndices = [];
+      List<int> matchingLengths = [];
+      for (var entry in matchingBeginIndicesMap.entries) {
+        matchingIndices.add(entry.key);
+        matchingLengths.add(entry.value);
+      }
+      allMatchingIndices.add(matchingIndices);
+      allMatchingLengths.add(matchingLengths);
+    }
+
+    // generate blankified sentence
+    String blankified;
+    int n = allMatchingIndices.length;
+    if (n == 1) {
+      //-- single-word term --//
+      blankified = _blankifyRanges(
+        sentence,
+        allMatchingIndices[0],
+        allMatchingLengths[0],
+        blank,
+      );
     } else {
-      // blankify only one occurrence which has the minimum end-to-end distance
-      int minDist = sentenceSplitted.length;
-      for (int index in patternIndices) {
-        // distance test
-        int beginIndex = sentenceIndices[index];
-        int endIndex = sentenceIndices[index + termSplitted.length - 1];
-        int distance = endIndex - beginIndex;
-        if (distance < minDist) {
-          //-- new pattern with shorter distance found --//
-          // select the new pattern
-          minDist = distance;
-          selectedIndices.clear();
-          for (int i = 0; i < termSplitted.length; i++) {
-            selectedIndices.add(sentenceIndices[index + i]);
+      //-- multi-word term --//
+
+      // find (i1, .. , in) such that
+      // i1 < .. < in, and
+      // all words indicated by i1, .., in are distinct
+      List<int> I = List<int>.generate(n, (index) => 0);
+      List<int> minI = List<int>.generate(n, (index) => -1);
+      int minDist = sentence.length + 1;
+      while (I[0] < allMatchingIndices[0].length) {
+        // sentence[k..] is considered for I[j]
+        int k = 0;
+
+        // fix i1, .. , in (candidate set)
+        int j = 0;
+        while (j < n && I[j] < allMatchingIndices[j].length) {
+          // range: [begin, end)
+          var begin = allMatchingIndices[j][I[j]];
+          var len = allMatchingLengths[j][I[j]];
+
+          if (k <= begin) {
+            // found a blank candidate
+            j++;
+            k = begin + len;
+          } else {
+            // overlaps with previously blanked word
+            // hence, check the next range
+            I[j]++;
           }
         }
-      }
-    }
 
-    // replace the words at the selected indices with blanks
-    for (int index in selectedIndices) {
-      sentenceSplitted[index] = blank;
-    }
-
-    // concatenate the blankified words
-    return sentenceSplitted.join(' ');
-  }
-
-  /// Find all occurrences of `pattern` in `target`.
-  /// return the indices at which the pattern matches
-  ///
-  /// It uses Knuth-Morris-Pratt Algorithm.
-  List<int> _findPattern(List target, List pattern) {
-    // compute the length of the longest `proper` prefix which is also suffix
-    final List<int> lps = List.filled(pattern.length, 0);
-    for (int i = 1, j = 0; i < pattern.length;) {
-      if (pattern[j] == pattern[i]) {
-        lps[i++] = ++j;
-      } else {
-        if (j > 0) {
-          j = lps[j - 1];
+        if (j == n) {
+          // found a candidate set I
+          int dist = allMatchingIndices[n - 1][I[n - 1]] +
+              allMatchingLengths[n - 1][I[n - 1]] -
+              allMatchingIndices[0][I[0]];
+          if (dist < minDist) {
+            // found new word sets to be blanked whose distance is shorter
+            minI = List<int>.from(I);
+            minDist = dist;
+          }
         } else {
-          lps[i++] = 0;
+          // no more candidate set exists
+          break;
         }
+
+        // try to catch the next set
+        I[0]++;
       }
-    }
 
-    // pattern finding
-    final List<int> patternIndices = [];
-    for (int i = 0, j = 0; i < target.length;) {
-      if (target[i] == pattern[j]) {
-        i++;
-        j++;
+      // blankify
+      if (minDist <= sentence.length) {
+        var matchingIndices = List<int>.generate(
+          n,
+          (index) => allMatchingIndices[index][minI[index]],
+        );
+        var matchingLengths = List<int>.generate(
+          n,
+          (index) => allMatchingLengths[index][minI[index]],
+        );
 
-        if (j == pattern.length) {
-          patternIndices.add(i - pattern.length);
-          j = lps[j - 1];
-        }
-      } else if (j > 0) {
-        j = lps[j - 1];
+        blankified = _blankifyRanges(
+          sentence,
+          matchingIndices,
+          matchingLengths,
+          blank,
+        );
       } else {
-        i++;
+        blankified = sentence;
       }
     }
 
-    return patternIndices;
+    return blankified;
   }
 
-  /// Given a word,
-  ///   1. remove all special characters
-  ///   2. make it lower cases, and
-  ///   3. trim it.
-  String _processWord(String word) {
-    return Global.removeSpecials(word).toLowerCase().trim();
-  }
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
 
-  /// Given a processed word and the word map generated from the term,
-  /// check if the word is included the map.
+  /// Given a word without space included, return its all variants.
+  /// Some variants may make non-sense linguistically.
   ///
-  /// RETURN: the (partially) matched word if there is.
-  ///         null, otherwise.
-  String? _matchingWord(Map<String, int> wordMap, String processedWord) {
-    String matchedWord;
+  /// example: drop -> [dropped, droped, drops, droply, ...]
+  static List<String> _getVariantsOf(String word) {
+    int n = word.length;
+    return [
+      word,
 
-    // match as it is (e.g. pay -> pay)
-    if (wordMap.containsKey(processedWord)) {
-      return processedWord;
-    }
+      // past tense 1 (e.g. turn -> turned)
+      word + 'ed',
 
-    // past tense 1 (e.g. turned -> turn)
-    if (processedWord.length > 2 && processedWord.endsWith('ed')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 2);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
+      // past tense 2 (e.g. liked -> like)
+      word + 'd',
+
+      // past tense 3 (e.g. prop -> propped)
+      word + word[n - 1] + 'ed',
+
+      // past tense 4 (e.g. study -> studied)
+      word.substring(0, n - 1) + 'ied',
+
+      // present participle 1 (e.g. study -> studying)
+      word + 'ing',
+
+      // present participle 2 (e.g. like -> liking)
+      word.substring(0, n - 1) + 'ing',
+
+      // present participle 3 (e.g. drop -> dropping)
+      word + word[n - 1] + 'ing',
+
+      // plural 1 (e.g. apple -> apples)
+      word + 's',
+
+      // plural 2 (e.g. box -> boxes)
+      word + 'es',
+
+      // adverbs 1 (e.g. abrupt -> abruptly)
+      word + 'ly',
+
+      // adverbs 2 (e.g. heavy -> heavily)
+      word.substring(0, n - 1) + 'ily',
+    ];
+  }
+
+  /// Find all occurrences of [word] in [sentence]
+  /// Return: the starting indices of each matching in [sentence]
+  static List<int> _findMatchingBeginIndices(String sentence, String word) {
+    //-- Z algorithm --//
+
+    String lowerSentence = sentence.toLowerCase();
+    String s = word + '\x80' + lowerSentence;
+    int n = s.length;
+    List<int> Z = List.filled(n, 0);
+    int L = 0, R = -1;
+
+    for (int i = 1; i < n; i++) {
+      int j = R < i ? 0 : min(Z[i - L], R - i + 1);
+      int k = i + j;
+      while (k < n && s[j] == s[k]) {
+        j++;
+        k++;
+      }
+      Z[i] = j;
+      if (R < k - 1) {
+        L = i;
+        R = k - 1;
       }
     }
 
-    // past tense 2 (e.g. liked -> like)
-    if (processedWord.length > 1 && processedWord.endsWith('d')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 1);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
+    // gather beginning indices of occurrences
+    List<int> indices = [];
+    int m = word.length;
+    for (int i = m + 1; i < n; i++) {
+      if (Z[i] == m) {
+        int j = i - (m + 1);
+
+        // is beginning of a word?
+        if (j == 0 ||
+            lowerSentence[j - 1].compareTo('a') < 0 ||
+            lowerSentence[j - 1].compareTo('z') > 0) {
+          indices.add(j);
+        }
       }
     }
 
-    // present participle 1 (e.g. studying -> study)
-    if (processedWord.length > 3 && processedWord.endsWith('ing')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 3);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
-      }
-    }
+    return indices;
+  }
 
-    // present participle 2 (e.g. liking -> like)
-    if (processedWord.length > 3 && processedWord.endsWith('ing')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 3) + 'e';
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
-      }
+  /// Replace every sentence[begin, begin+len) with [blank]
+  static String _blankifyRanges(
+    String sentence,
+    List<int> indices,
+    List<int> lengths,
+    String blank,
+  ) {
+    int i = 0;
+    String blankified = '';
+    int n = indices.length;
+    for (int j = 0; j < n; j++) {
+      blankified += sentence.substring(i, indices[j]) + blank;
+      i = indices[j] + lengths[j];
     }
+    blankified += sentence.substring(i);
 
-    // plural 1 (e.g. apples -> apple)
-    if (processedWord.length > 1 && processedWord.endsWith('s')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 1);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
-      }
-    }
-
-    // plural 2 (e.g. boxes -> box)
-    if (processedWord.length > 2 && processedWord.endsWith('es')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 2);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
-      }
-    }
-
-    // adverbs (e.g. abruptly -> abrupt)
-    if (processedWord.length > 2 && processedWord.endsWith('ly')) {
-      matchedWord = processedWord.substring(0, processedWord.length - 2);
-      if (wordMap.containsKey(matchedWord)) {
-        return matchedWord;
-      }
-    }
-
-    return null;
+    return blankified;
   }
 }
