@@ -147,7 +147,7 @@ class _DictionaryPageState extends State<DictionaryPage>
             onPressed: () async {
               await _deleteWords();
               _disableSelectionMode();
-              Global.showSuccess();
+              Global.showSuccess(context);
             },
             child: const Icon(Icons.delete_outlined),
             heroTag: null,

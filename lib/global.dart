@@ -23,8 +23,7 @@ class Global {
   }
 
   /// show success dialog
-  static void showSuccess() {
-    BuildContext context = navigatorKey.currentContext!;
+  static void showSuccess(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -217,7 +217,7 @@ class _SettingsState extends State<SettingsPage> {
         await Future.wait(futures);
 
         // show success indicator
-        Global.showSuccess();
+        Global.showSuccess(context);
       }
     } on PlatformException catch (e) {
       // Permission required
