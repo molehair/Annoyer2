@@ -94,7 +94,7 @@ class MyApp extends StatelessWidget {
             return const HomePage();
           }
 
-          return const Text('Loading...');
+          return const CircularProgressIndicator();
         },
       ),
     );

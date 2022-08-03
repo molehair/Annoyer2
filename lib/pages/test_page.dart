@@ -102,7 +102,7 @@ class TestPage extends StatelessWidget {
         }
 
         // loading
-        return const Text('Loading...');
+        return const CircularProgressIndicator();
       },
     );
   }
