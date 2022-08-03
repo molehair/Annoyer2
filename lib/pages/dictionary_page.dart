@@ -235,7 +235,6 @@ class _DictionaryPageState extends State<DictionaryPage>
               index--;
 
               Word word = words[index];
-              bool idiom = word.name.trim().contains(' ');
               Widget leading;
               if (_selectionMode) {
                 leading = Checkbox(
@@ -243,14 +242,7 @@ class _DictionaryPageState extends State<DictionaryPage>
                   onChanged: (bool? value) => _updateSelection(word, value),
                 );
               } else {
-                leading = CircleAvatar(
-                  child: Text(
-                    idiom ? t.idiom : t.word,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  backgroundColor:
-                      idiom ? Theme.of(context).secondaryHeaderColor : null,
-                );
+                leading = CircleAvatar(child: Text(word.level.toString()));
               }
               widget = ListTile(
                 leading: leading,
