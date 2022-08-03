@@ -181,37 +181,6 @@ class Training {
     await TrainingData.put(trainingData);
   }
 
-  //---------------------------------------------------------------//
-  //        internal methods
-  //---------------------------------------------------------------//
-
-  /// clean up completed tests
-  static _cleanUpCompleteInstances(_) async {
-    var insts = await TrainingInstance.getAll();
-
-    for (TrainingInstance inst in insts) {
-      // fetch training data
-      var td = await TrainingData.get(inst.trainingId);
-
-      // skip if the training data is already removed
-      if (td == null) {
-        continue;
-      }
-
-      // check if the test is complete
-      if (td.questions.every((e) => e.state != QuestionState.intertermined)) {
-        // remove all instances
-        var allInsts = await TrainingInstance.getAll();
-        var targetInsts = allInsts.where((inst) => inst.trainingId == td.id);
-        var targetInstIds = targetInsts.map((e) => e.id!);
-        TrainingInstance.deletes(targetInstIds.toList());
-
-        // Remove training data
-        await TrainingData.delete(td.id!);
-      }
-    }
-  }
-
   /// Make practice/test instances and show notifications if necessary
   /// Called by background worker.
   ///
@@ -265,6 +234,43 @@ class Training {
           td.lastTrainingIndex = trainingIndex;
           await TrainingData.put(td);
         }
+      }
+    }
+  }
+
+  /// Check if trainingIndex indicates a practice instance.
+  /// False if it does a test instance.
+  static bool isPractice(int trainingIndex) {
+    return trainingIndex < numPracticeAlarmsPerDay;
+  }
+
+  //---------------------------------------------------------------//
+  //        internal methods
+  //---------------------------------------------------------------//
+
+  /// clean up completed tests
+  static _cleanUpCompleteInstances(_) async {
+    var insts = await TrainingInstance.getAll();
+
+    for (TrainingInstance inst in insts) {
+      // fetch training data
+      var td = await TrainingData.get(inst.trainingId);
+
+      // skip if the training data is already removed
+      if (td == null) {
+        continue;
+      }
+
+      // check if the test is complete
+      if (td.questions.every((e) => e.state != QuestionState.intertermined)) {
+        // remove all instances
+        var allInsts = await TrainingInstance.getAll();
+        var targetInsts = allInsts.where((inst) => inst.trainingId == td.id);
+        var targetInstIds = targetInsts.map((e) => e.id!);
+        TrainingInstance.deletes(targetInstIds.toList());
+
+        // Remove training data
+        await TrainingData.delete(td.id!);
       }
     }
   }
@@ -397,6 +403,9 @@ class Training {
         notificationId: notificationId,
       ),
     );
+
+    Log.info(
+        'Issued a training instance with trainingId $trainingId, trainingIndex $trainingIndex, notificationId $notificationId');
   }
 
   /// Compute the id for a training instance
@@ -405,11 +414,5 @@ class Training {
   /// Thus, there exist [numAlarmsPerDay] + 1 instances at most for each [trainingId].
   static int _computeTrainingInstanceId(int trainingId, int trainingIndex) {
     return trainingId * (numAlarmsPerDay + 1) + trainingIndex;
-  }
-
-  /// Check if trainingIndex indicates a practice instance.
-  /// False if it does a test instance.
-  static bool isPractice(int trainingIndex) {
-    return trainingIndex < numPracticeAlarmsPerDay;
   }
 }
