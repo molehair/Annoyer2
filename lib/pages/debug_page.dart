@@ -1,8 +1,7 @@
-import 'package:annoyer/browser.dart';
 import 'package:annoyer/database/local_settings.dart';
-import 'package:annoyer/database/log_item.dart';
-import 'package:annoyer/database/practice_instance.dart';
-import 'package:annoyer/database/test_instance.dart';
+import 'package:annoyer/database/predefined_word.dart';
+import 'package:annoyer/database/question_ask_word.dart';
+import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/training.dart';
@@ -16,14 +15,15 @@ class DebugPage extends StatefulWidget {
 }
 
 class _DebugPageState extends State<DebugPage> {
-  final TextEditingController _dailyIndexController = TextEditingController();
+  final TextEditingController _trainingIndexController =
+      TextEditingController();
   final TextEditingController _trainingIdController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
 
-    _dailyIndexController.text = '0';
+    _trainingIndexController.text = '0';
     _trainingIdController.text = '0';
   }
 
@@ -33,106 +33,45 @@ class _DebugPageState extends State<DebugPage> {
       appBar: AppBar(title: const Text('debug')),
       body: ListView(
         children: <Widget>[
-          TextButton(
-            child: const Text('view logs'),
-            onPressed: () async {
-              List<LogItem> logs = await LogItem.getAll();
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => Scaffold(
-                    body: ListView.builder(
-                      shrinkWrap: true,
-                      reverse: false,
-                      itemCount: logs.length,
-                      itemBuilder: (context, index) {
-                        return Text(logs[index].log);
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          TextButton(
-            child: const Text('delete logs'),
-            onPressed: () async {
-              await LogItem.deleteAll();
-              debugPrint('deleted');
-            },
-          ),
           const Divider(),
           TextButton(
-            child: const Text('test1'),
+            child: const Text('clear predefined words'),
             onPressed: () async {
-              var insts = await PracticeInstance.getAll();
-              debugPrint(insts.length.toString());
-            },
-          ),
-          TextButton(
-            child: const Text('test2'),
-            onPressed: () async {},
-          ),
-          TextButton(
-            child: const Text('temp'),
-            onPressed: () async {
-              // send token to the server
-              var res = await Browser.get("/test1", queryParameters: {
-                "deviceId": await LocalSettings.getDeviceId(),
-                "dailyIndex": _dailyIndexController.text,
-              });
+              LocalSettings.setPredefinedWordsVersion(0);
+              await PredefinedWord.deleteAll();
+              debugPrint('removed all predefined words');
             },
           ),
           const Divider(),
           const ListTile(title: Text('training'), dense: true),
-          ListTile(
-            title: TextFormField(
-              decoration: const InputDecoration(labelText: 'dailyIndex'),
-              controller: _dailyIndexController,
-            ),
-          ),
-          ListTile(
-            title: TextFormField(
-              decoration: const InputDecoration(labelText: 'trainingId'),
-              controller: _trainingIdController,
-            ),
-          ),
           TextButton(
-            child: const Text('Run [onTest]'),
+            child: const Text('Run [onBackgroundCallback]'),
             onPressed: () async {
-              int trainingId = int.parse(_trainingIdController.text);
-              Training.onTest({
-                'trainingId': trainingId,
-              });
+              Training.onBackgroundCallback();
             },
           ),
           TextButton(
-            child: const Text('delete all practice instances'),
+            child: const Text('delete all training instances'),
             onPressed: () async {
-              await PracticeInstance.deleteAll();
+              await TrainingInstance.deleteAll();
               debugPrint('Removed all practice instances.');
             },
           ),
           TextButton(
-            child: const Text('delete all test instances'),
+            child: const Text('view all trainingData'),
             onPressed: () async {
-              await TestInstance.deleteAll();
-              debugPrint('Removed all test instances.');
+              var tds = await TrainingData.getAll();
+              for (var td in tds) {
+                debugPrint(td.toString());
+              }
+              debugPrint('Total ${tds.length}');
             },
           ),
           TextButton(
-            child: const Text('view trainingData'),
+            child: const Text('delete all trainingData'),
             onPressed: () async {
-              int trainingId = int.parse(_trainingIdController.text);
-              TrainingData? trainingData = await TrainingData.get(trainingId);
-              debugPrint(trainingData.toString());
-            },
-          ),
-          TextButton(
-            child: const Text('delete trainingData'),
-            onPressed: () async {
-              int trainingId = int.parse(_trainingIdController.text);
-              TrainingData.delete(trainingId);
-              debugPrint('Deleted training data $trainingId');
+              TrainingData.deleteAll([0, 1, 2, 3, 4, 5, 6]);
+              debugPrint('Deleted all training data');
             },
           ),
           const Divider(),
@@ -203,8 +142,92 @@ class _DebugPageState extends State<DebugPage> {
               debugPrint('deleted all words');
             },
           ),
+          const Divider(),
+          TextButton(
+            child: const Text('check blankify correctness'),
+            onPressed: () async {
+              for (var testSet in blankifyTestSet) {
+                var blankified = QuestionAskWord.blankify(
+                    testSet['ex']!, testSet['term']!,
+                    blank: debugBlank);
+                if (blankified != testSet['correctAnswer']!) {
+                  debugPrint('Test failed');
+                  debugPrint(testSet['ex']);
+                  debugPrint(testSet['term']);
+                  debugPrint(testSet['correctAnswer']);
+                  debugPrint(blankified);
+                  return;
+                }
+              }
+              debugPrint('All tests have passed');
+            },
+          ),
         ],
       ),
     );
   }
 }
+
+const debugBlank = '__';
+var blankifyTestSet = [
+  {
+    'term': 'prop',
+    'ex': 'She propped her chin in the palm of her right hand.',
+    'correctAnswer':
+        'She ' + debugBlank + ' her chin in the palm of her right hand.',
+  },
+  {
+    'term': 'drop by',
+    'ex': 'Send an email before dropping by a professor.',
+    'correctAnswer': 'Send an email before ' +
+        debugBlank +
+        ' ' +
+        debugBlank +
+        ' a professor.',
+  },
+  {
+    'term': 'trip over',
+    'ex':
+        'The place was filled with sleeping people. I tripped over perfect strangers on my way to the door.',
+    'correctAnswer': 'The place was filled with sleeping people. I ' +
+        debugBlank +
+        ' ' +
+        debugBlank +
+        ' perfect strangers on my way to the door.',
+  },
+  {
+    'term': 'lug',
+    'ex':
+        "I'm exhausted after lugging these suitcases all the way across the city.",
+    'correctAnswer': "I'm exhausted after " +
+        debugBlank +
+        " these suitcases all the way across the city.",
+  },
+  {
+    'term': 'at all cost',
+    'ex': "Please, save my husband at all costs-I can't live without him!",
+    'correctAnswer': "Please, save my husband " +
+        debugBlank +
+        " " +
+        debugBlank +
+        " " +
+        debugBlank +
+        "-I can't live without him!",
+  },
+  {
+    'term': 'plop down',
+    'ex': 'He plopped himself down in the chair.',
+    'correctAnswer':
+        'He ' + debugBlank + ' himself ' + debugBlank + ' in the chair.',
+  },
+  {
+    'term': 'aaaa',
+    'ex': 'He plopped himself down in the chair.',
+    'correctAnswer': 'He plopped himself down in the chair.',
+  },
+  {
+    'term': 'aa bb',
+    'ex': 'He plopped himself down in the chair.',
+    'correctAnswer': 'He plopped himself down in the chair.',
+  },
+];
