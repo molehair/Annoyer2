@@ -60,14 +60,6 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // Set color for the target word depending on the correctness state
-    Color? wordColor;
-    if (widget._question.state == QuestionState.correct) {
-      wordColor = Colors.green;
-    } else if (widget._question.state == QuestionState.wrong) {
-      wordColor = Colors.red;
-    }
-
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListView(
@@ -88,7 +80,7 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
           // word
           Text(
             widget._question.word.name,
-            style: TextStyle(fontSize: 30, color: wordColor),
+            style: const TextStyle(fontSize: 30),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -190,6 +182,26 @@ class _AskDefinitionWidgetState extends State<AskDefinitionWidget>
             child: TextButton(
               onPressed: () => _grade(null),
               child: Text(t.giveUp),
+            ),
+          ),
+
+          // correct icon
+          Visibility(
+            visible: widget._question.state == QuestionState.correct,
+            child: const Icon(
+              Icons.emoji_emotions_outlined,
+              size: 64,
+              color: Colors.green,
+            ),
+          ),
+
+          // incorrect icon
+          Visibility(
+            visible: widget._question.state == QuestionState.wrong,
+            child: const Icon(
+              Icons.sentiment_dissatisfied_outlined,
+              size: 64,
+              color: Colors.red,
             ),
           ),
         ],

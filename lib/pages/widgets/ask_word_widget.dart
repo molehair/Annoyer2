@@ -222,6 +222,26 @@ class _AskWordWidgetState extends State<AskWordWidget>
               child: Text(t.giveUp),
             ),
           ),
+
+          // correct icon
+          Visibility(
+            visible: widget._question.state == QuestionState.correct,
+            child: const Icon(
+              Icons.emoji_emotions_outlined,
+              size: 64,
+              color: Colors.green,
+            ),
+          ),
+
+          // incorrect icon
+          Visibility(
+            visible: widget._question.state == QuestionState.wrong,
+            child: const Icon(
+              Icons.sentiment_dissatisfied_outlined,
+              size: 64,
+              color: Colors.red,
+            ),
+          ),
         ],
       ),
     );
