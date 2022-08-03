@@ -157,9 +157,7 @@ class _DictionaryPageState extends State<DictionaryPage>
     } else {
       floatingActionButtons = FloatingActionButton(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => WordPage(createMode: true),
-          ),
+          MaterialPageRoute(builder: (context) => WordPage()),
         ),
         child: const Icon(Icons.add),
         heroTag: null,
@@ -264,10 +262,7 @@ class _DictionaryPageState extends State<DictionaryPage>
                   } else {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => WordPage(
-                          createMode: false,
-                          word: word,
-                        ),
+                        builder: (context) => WordPage(word: word),
                       ),
                     );
                   }

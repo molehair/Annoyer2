@@ -3,6 +3,7 @@ import 'package:annoyer/database/database.dart';
 import 'package:annoyer/notification_center.dart';
 import 'package:flutter/material.dart';
 
+import 'database/predefined_word.dart';
 import 'database/word.dart';
 import 'global.dart';
 import 'i18n/strings.g.dart';
@@ -43,6 +44,10 @@ Future<void> initialization() async {
   // word
   await Word.initialization();
   Log.info('Initialized Word');
+
+  // predefined words
+  await PredefinedWord.initialization();
+  Log.info('Initialized Predefined words');
 
   // training system
   await Training.initialization();

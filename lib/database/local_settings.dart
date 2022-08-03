@@ -28,7 +28,7 @@ class LocalSettings {
   static const int _alarmTimeMinute = 2;
   static const int _alarmWeekdays = 3;
   static const int _deviceId = 4;
-  static const int _cookie = 5;
+  static const int _predefineWordsVersion = 5;
 
   //---------------------------------------------------------------//
   //        exported methods
@@ -100,13 +100,14 @@ class LocalSettings {
     });
   }
 
-  static Future<String?> getCookie() async {
-    var obj = await Database.isar.localSettingss.get(_cookie);
+  static Future<int?> getPredefinedWordsVersion() async {
+    var obj = await Database.isar.localSettingss.get(_predefineWordsVersion);
     return (obj != null) ? jsonDecode(obj.value) : null;
   }
 
-  static Future<void> setCookie(String cookie) {
-    LocalSettings obj = LocalSettings(_cookie, jsonEncode(cookie));
+  static Future<void> setPredefinedWordsVersion(int version) {
+    LocalSettings obj =
+        LocalSettings(_predefineWordsVersion, jsonEncode(version));
     return Database.isar.writeTxn((isar) async {
       await Database.isar.localSettingss.put(obj);
     });
