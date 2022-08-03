@@ -131,16 +131,9 @@ class _AskWordWidgetState extends State<AskWordWidget>
               loadingBuilder: (context) => const ListTile(
                 title: Center(child: CircularProgressIndicator()),
               ),
-              noItemsFoundBuilder: (context) => ListTile(
-                title: Text(
-                  t.notFound,
-                  style: TextStyle(color: Theme.of(context).errorColor),
-                ),
-              ),
-              // errorBuilder: (BuildContext context, Object? error) => Text(
-              //   '$error AAA',
-              //   style: TextStyle(color: Theme.of(context).errorColor),
-              // ),
+              hideOnEmpty: true,
+              hideOnError: true,
+              keepSuggestionsOnLoading: false,
             ),
           ),
           const SizedBox(height: 24),
