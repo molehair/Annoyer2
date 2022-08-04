@@ -6,6 +6,7 @@ import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
+import 'package:workmanager/workmanager.dart';
 
 class DebugPage extends StatefulWidget {
   const DebugPage({Key? key}) : super(key: key);
@@ -44,6 +45,17 @@ class _DebugPageState extends State<DebugPage> {
           ),
           const Divider(),
           const ListTile(title: Text('training'), dense: true),
+          TextButton(
+            child: const Text('Reschedule workmanager'),
+            onPressed: () async {
+              await Workmanager().cancelAll();
+              await Workmanager().registerPeriodicTask(
+                'workmanager',
+                'workmanager',
+                frequency: const Duration(minutes: 20),
+              );
+            },
+          ),
           TextButton(
             child: const Text('Run [onBackgroundCallback]'),
             onPressed: () async {
