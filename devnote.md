@@ -1,7 +1,9 @@
 - bugs
   
 - todo
+  - number Practice title. e.g.) Practice 14
   - fix loading view from the main
+  - warning..
 w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.5.30/5fd47535cc85f9e24996f939c2de6583991481b0/kotlin-stdlib-jdk8-1.5.30.jar (version 1.5)
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/1.6.21/568c1b78a8e17a4f35b31f0a74e2916095ed74c2/kotlin-stdlib-jdk7-1.6.21.jar (version 1.6)
