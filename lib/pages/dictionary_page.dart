@@ -242,7 +242,15 @@ class _DictionaryPageState extends State<DictionaryPage>
                   onChanged: (bool? value) => _updateSelection(word, value),
                 );
               } else {
-                leading = CircleAvatar(child: Text(word.level.toString()));
+                leading = CircleAvatar(
+                  child: CircleAvatar(
+                    child: Text(word.level.toString()),
+                    backgroundColor: Colors.white,
+                    radius: 18,
+                  ),
+                  // backgroundColor: Theme.of(context).backgroundColor,
+                  radius: 20,
+                );
               }
               widget = ListTile(
                 leading: leading,
