@@ -1,3 +1,4 @@
+import 'package:annoyer/log.dart';
 import 'package:annoyer/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
@@ -32,8 +33,9 @@ class BackgroundWorker {
     }
 
     // workmanager
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
-    Workmanager().registerPeriodicTask(
+    await Workmanager()
+        .initialize(callbackDispatcher, isInDebugMode: kDebugMode);
+    await Workmanager().registerPeriodicTask(
       'workmanager',
       'workmanager',
       frequency: _interval,
@@ -65,8 +67,12 @@ void callbackDispatcher() {
     await initialization();
 
     // call the callbacks
-    for (var task in BackgroundWorker._tasks.values) {
-      task.call();
+    for (var entry in BackgroundWorker._tasks.entries) {
+      try {
+        await entry.value.call();
+      } on Exception catch (e) {
+        Log.error('Error from ${entry.key}', exception: e);
+      }
     }
 
     return true;

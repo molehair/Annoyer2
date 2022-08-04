@@ -190,7 +190,9 @@ class Training {
   ///
   /// Also, start a new training session if necessary.
   static void onBackgroundCallback() async {
-    bool alarmEnabled = await LocalSettings.getAlarmEnabled() ?? false;
+    Log.info('onBackgroundCallback');
+
+    bool alarmEnabled = (await LocalSettings.getAlarmEnabled()) ?? false;
 
     if (alarmEnabled) {
       // for all live training data
@@ -228,6 +230,8 @@ class Training {
           // eliminate it if invalid
           await TrainingData.delete(td.id!);
         } else {
+          Log.info('Issuing a training instance');
+
           // issue a training instance
           final int trainingIndex = td.lastTrainingIndex + 1;
           if (trainingIndex < numAlarmsPerDay) {
