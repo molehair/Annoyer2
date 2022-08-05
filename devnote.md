@@ -1,6 +1,6 @@
 - bugs
   - In ask-word question, wrong answer given by user doesn't show up
-  - When a test is done, the associated training instances don't disappear immediately, although they do when once enter and leave them.
+  - When a test is done, the associated training instances don't disappear immediately, although they do when enter and leave a practice instance. (not working with test instance)
 
 - todo
   - number Practice title. e.g.) Practice 14
