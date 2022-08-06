@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -14,8 +15,8 @@ class NotificationCenter {
   /// Initialized this class?
   static bool _inited = false;
 
-  // notification id (auto-incremented)
-  static int _id = 0;
+  /// Maximum notification id
+  static const int _maxId = 1 << 30;
 
   static final Map<String, void Function(Map<String, Object?>?)> _callbacks =
       {};
@@ -81,14 +82,13 @@ class NotificationCenter {
     String payload = jsonEncode({'key': key, 'data': data});
 
     // show!
+    var rng = Random();
+    var id = rng.nextInt(_maxId);
     await flutterLocalNotificationsPlugin
-        .show(_id, title, body, platformChannelSpecifics, payload: payload);
-
-    // increment id
-    _id++;
+        .show(id, title, body, platformChannelSpecifics, payload: payload);
 
     // return the very used id
-    return _id - 1;
+    return id;
   }
 
   /// cancel a live notification
