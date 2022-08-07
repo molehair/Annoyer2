@@ -110,15 +110,21 @@ class _AskWordWidgetState extends State<AskWordWidget>
                     Word.nameIndex.search(pattern.trim());
 
                 // fetch definitions
-                final List<Word> words = [];
-                for (int id in suggestionIds) {
-                  Word? word = await Word.get(id);
-                  if (word != null) {
-                    words.add(word);
+                final List<Word> prefixMatches = [];
+                final List<Word> nonPrefixMatches = [];
+                var allWords = await Word.getAll();
+                for (var word in allWords) {
+                  if (suggestionIds.contains(word.id)) {
+                    if (word.name.startsWith(pattern)) {
+                      prefixMatches.add(word);
+                    } else {
+                      nonPrefixMatches.add(word);
+                    }
                   }
                 }
 
-                return words;
+                // words that start with [pattern] appear first
+                return prefixMatches + nonPrefixMatches;
               },
               itemBuilder: (context, Word suggestion) {
                 return ListTile(
