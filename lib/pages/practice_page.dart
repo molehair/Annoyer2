@@ -73,6 +73,10 @@ class PracticePage extends StatelessWidget {
     return words;
   }
 
+  static String getTitle(int trainingIndex) {
+    return '${t.practice} ${trainingIndex + 1}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -109,7 +113,7 @@ class PracticePage extends StatelessWidget {
         return DefaultTabController(
           length: tabLength,
           child: Scaffold(
-            appBar: AppBar(title: Text(t.practice)),
+            appBar: AppBar(title: Text(getTitle(inst.trainingIndex))),
             body: body,
             bottomNavigationBar: Padding(
               padding: const EdgeInsets.all(8.0),

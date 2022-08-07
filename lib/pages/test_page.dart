@@ -67,6 +67,19 @@ class TestPage extends StatelessWidget {
     );
   }
 
+  static String getTitle(int weekday) {
+    var weekdayString = [
+      t.sunday,
+      t.monday,
+      t.tuesday,
+      t.wednesday,
+      t.thursday,
+      t.friday,
+      t.saturday,
+    ][weekday % 7];
+    return t.testTitle(weekdayFull: weekdayString);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Widget>>(
@@ -87,7 +100,7 @@ class TestPage extends StatelessWidget {
             return DefaultTabController(
               length: views.length,
               child: Scaffold(
-                appBar: AppBar(title: Text(t.test)),
+                appBar: AppBar(title: Text(getTitle(trainingId))),
                 body: TabBarView(children: views),
                 bottomNavigationBar: Padding(
                   padding: const EdgeInsets.all(8.0),

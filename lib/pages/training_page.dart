@@ -50,14 +50,14 @@ class _TrainingPageState extends State<TrainingPage> {
           Widget? subtitle;
           void Function() onTap;
           if (Training.isPractice(inst.trainingIndex)) {
-            title = Text('${t.practice} ${inst.trainingIndex}');
-            subtitle = Text('for the test ${inst.trainingId}');
+            title = Text(PracticePage.getTitle(inst.trainingIndex));
+            subtitle = Text(TestPage.getTitle(inst.trainingId));
             onTap = () => Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (context) => PracticePage(inst: inst)),
                 );
           } else {
-            title = Text('${t.test}  ${inst.trainingId}');
+            title = Text(TestPage.getTitle(inst.trainingId));
             subtitle = null;
             onTap = () => Navigator.of(context).push(
                   MaterialPageRoute(
