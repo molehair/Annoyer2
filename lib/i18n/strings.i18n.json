@@ -15,6 +15,13 @@
   "thu": "Thu",
   "fri": "Fri",
   "sat": "Sat",
+  "sunday": "Sunday",
+  "monday": "Monday",
+  "tuesday": "Tuesday",
+  "wednesday": "Wednesday",
+  "thursday": "Thursday",
+  "friday": "Friday",
+  "saturday": "Saturday",
   "alarm": "Alarm",
   "annoyer": "Annoyer",
   "practiceNotifier": "Bump yourself up!",
@@ -58,5 +65,6 @@
   "askWord": "Fill in the blanks in the following sentence.",
   "dataManagement": "Data management",
   "sync": "Sync",
-  "optional": "Optional"
+  "optional": "Optional",
+  "testTitle": "Test on $weekdayFull"
 }
