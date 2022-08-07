@@ -94,7 +94,9 @@ class MyApp extends StatelessWidget {
             return const HomePage();
           }
 
-          return const CircularProgressIndicator();
+          // 'loading...'
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         },
       ),
     );
