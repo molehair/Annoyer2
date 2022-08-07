@@ -3,9 +3,6 @@
   - When a test is done, the associated training instances don't disappear immediately, although they do when enter and leave a practice instance. (not working with test instance)
 
 - todo
-  - number Practice title. e.g.) Practice 14
-  - fix loading view from the main
-  - In ask-word question, sort the suggestions so that words with prefix-match come first
   - warning..
 w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.5.30/5fd47535cc85f9e24996f939c2de6583991481b0/kotlin-stdlib-jdk8-1.5.30.jar (version 1.5)
@@ -44,3 +41,4 @@ w: Some runtime JAR files in the classpath have an incompatible version. Conside
   - Showing level for each word on dictionary page
   - Improved blankification.
   - More clear expression of correctness on test
+  - Better titles for practice and test
