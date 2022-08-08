@@ -92,7 +92,7 @@ class Training {
         _notiKey, (data) => onNotificationTapped(data!));
 
     // set test instance clean-up handler
-    TrainingInstance.getStream().listen(_cleanUpCompleteInstances);
+    TrainingData.getStream().listen(_cleanUpCompleteInstances);
 
     // mark as finished initialization
     _inited = true;
@@ -256,17 +256,9 @@ class Training {
 
   /// clean up completed tests
   static _cleanUpCompleteInstances(_) async {
-    var insts = await TrainingInstance.getAll();
+    var tds = await TrainingData.getAll();
 
-    for (TrainingInstance inst in insts) {
-      // fetch training data
-      var td = await TrainingData.get(inst.trainingId);
-
-      // skip if the training data is already removed
-      if (td == null) {
-        continue;
-      }
-
+    for (var td in tds) {
       // check if the test is complete
       if (td.questions.every((e) => e.state != QuestionState.intertermined)) {
         // remove all instances

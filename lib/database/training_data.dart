@@ -141,6 +141,11 @@ class TrainingData {
     });
   }
 
+  /// Get stream
+  static Stream<void> getStream() {
+    return Database.isar.trainingDatas.watchLazy();
+  }
+
   //---------------------------------------------------------------//
   //        internal methods
   //---------------------------------------------------------------//
