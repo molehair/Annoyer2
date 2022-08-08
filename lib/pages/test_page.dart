@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/question.dart';
 import 'package:annoyer/i18n/strings.g.dart';
@@ -8,7 +10,7 @@ import 'widgets/ask_word_widget.dart';
 
 class TestPage extends StatelessWidget {
   final int trainingId;
-  final Future<List<Widget>> _initialization;
+  final Future<Map<String, Object>> _initialization;
 
   TestPage({
     Key? key,
@@ -17,15 +19,25 @@ class TestPage extends StatelessWidget {
         super(key: key);
 
   /// generate and return question widgets
-  static Future<List<Widget>> _load(int trainingId) async {
+  static Future<Map<String, Object>> _load(int trainingId) async {
     // fetch training data
     TrainingData? trainingData = await TrainingData.get(trainingId);
 
     // make views for each tab
     List<Widget> views = [];
+    int initIndex = 0;
     if (trainingData != null) {
-      for (int i = 0; i < trainingData.questions.length; i++) {
+      int n = trainingData.questions.length;
+      initIndex = n;
+      for (int i = 0; i < n; i++) {
         Question question = trainingData.questions[i];
+
+        // update initial page index
+        if (question.state == QuestionState.intertermined) {
+          initIndex = min(initIndex, i);
+        }
+
+        // add a view
         switch (question.type) {
           case QuestionType.askDefinition:
             views.add(AskDefinitionWidget(
@@ -45,7 +57,7 @@ class TestPage extends StatelessWidget {
       }
     }
 
-    return views;
+    return {'initIndex': initIndex, 'views': views};
   }
 
   /// If there is no word to show...
@@ -82,7 +94,7 @@ class TestPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Widget>>(
+    return FutureBuilder<Map<String, Object>>(
       future: _initialization,
       builder: (context, snapshot) {
         // Check for errors
@@ -93,12 +105,17 @@ class TestPage extends StatelessWidget {
 
         // Once complete, show your application
         if (snapshot.connectionState == ConnectionState.done) {
-          final List<Widget> views = snapshot.data!;
-          if (views.isEmpty) {
+          var res = snapshot.data!;
+          int initIndex = res['initIndex']! as int;
+          int n = (res['views']! as List).length;
+          List<Widget> views = List<Widget>.generate(
+              n, (index) => (res['views'] as List)[index]);
+          if (n == 0) {
             return _emptyPage(context);
           } else {
             return DefaultTabController(
-              length: views.length,
+              length: n,
+              initialIndex: initIndex,
               child: Scaffold(
                 appBar: AppBar(title: Text(getTitle(trainingId))),
                 body: TabBarView(children: views),
