@@ -1,6 +1,11 @@
 - bugs
   - In ask-word question, wrong answer given by user doesn't show up
-  - When a test is done, the associated training instances don't disappear immediately, although they do when enter and leave a practice instance. (not working with test instance)
+  - blankify
+    - word: foster in
+    - sentence: The professor hoped to foster a genuine interest in his students to pursue research.
+    - expected: The professor hoped to __ a genuine interest __ his students to pursue research.
+    - reality: The professor hoped to __ a genuine __terest in his students to pursue research.
+  - When editing a word, check if the word name is one of predefined words.
 
 - todo
   - warning..
