@@ -4,6 +4,7 @@ import 'package:annoyer/database/question_ask_word.dart';
 import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/database/word.dart';
+import 'package:annoyer/log.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
@@ -40,7 +41,7 @@ class _DebugPageState extends State<DebugPage> {
             onPressed: () async {
               LocalSettings.setPredefinedWordsVersion(0);
               await PredefinedWord.deleteAll();
-              debugPrint('removed all predefined words');
+              Log.info('removed all predefined words');
             },
           ),
           const Divider(),
@@ -66,7 +67,7 @@ class _DebugPageState extends State<DebugPage> {
             child: const Text('delete all training instances'),
             onPressed: () async {
               await TrainingInstance.deleteAll();
-              debugPrint('Removed all practice instances.');
+              Log.info('Removed all practice instances.');
             },
           ),
           TextButton(
@@ -74,16 +75,16 @@ class _DebugPageState extends State<DebugPage> {
             onPressed: () async {
               var tds = await TrainingData.getAll();
               for (var td in tds) {
-                debugPrint(td.toString());
+                Log.info(td.toString());
               }
-              debugPrint('Total ${tds.length}');
+              Log.info('Total ${tds.length}');
             },
           ),
           TextButton(
             child: const Text('delete all trainingData'),
             onPressed: () async {
               TrainingData.deleteAll([0, 1, 2, 3, 4, 5, 6]);
-              debugPrint('Deleted all training data');
+              Log.info('Deleted all training data');
             },
           ),
           const Divider(),
@@ -144,14 +145,14 @@ class _DebugPageState extends State<DebugPage> {
 
               await Word.addAll(words);
 
-              debugPrint('Added bulk words');
+              Log.info('Added bulk words');
             },
           ),
           ListTile(
             title: const Text('drop all words'),
             onTap: () async {
               await Word.deleteAll();
-              debugPrint('deleted all words');
+              Log.info('deleted all words');
             },
           ),
           const Divider(),
@@ -163,15 +164,15 @@ class _DebugPageState extends State<DebugPage> {
                     testSet['ex']!, testSet['term']!,
                     blank: debugBlank);
                 if (blankified != testSet['correctAnswer']!) {
-                  debugPrint('Test failed');
-                  debugPrint(testSet['ex']);
-                  debugPrint(testSet['term']);
-                  debugPrint(testSet['correctAnswer']);
-                  debugPrint(blankified);
+                  Log.info('Test failed');
+                  Log.info(testSet['ex']!);
+                  Log.info(testSet['term']!);
+                  Log.info(testSet['correctAnswer']!);
+                  Log.info(blankified);
                   return;
                 }
               }
-              debugPrint('All tests have passed');
+              Log.info('All tests have passed');
             },
           ),
         ],
@@ -185,52 +186,38 @@ var blankifyTestSet = [
   {
     'term': 'prop',
     'ex': 'She propped her chin in the palm of her right hand.',
-    'correctAnswer':
-        'She ' + debugBlank + ' her chin in the palm of her right hand.',
+    'correctAnswer': 'She $debugBlank her chin in the palm of her right hand.',
   },
   {
     'term': 'drop by',
     'ex': 'Send an email before dropping by a professor.',
-    'correctAnswer': 'Send an email before ' +
-        debugBlank +
-        ' ' +
-        debugBlank +
-        ' a professor.',
+    'correctAnswer':
+        'Send an email before $debugBlank $debugBlank a professor.',
   },
   {
     'term': 'trip over',
     'ex':
         'The place was filled with sleeping people. I tripped over perfect strangers on my way to the door.',
-    'correctAnswer': 'The place was filled with sleeping people. I ' +
-        debugBlank +
-        ' ' +
-        debugBlank +
-        ' perfect strangers on my way to the door.',
+    'correctAnswer':
+        'The place was filled with sleeping people. I $debugBlank $debugBlank perfect strangers on my way to the door.',
   },
   {
     'term': 'lug',
     'ex':
         "I'm exhausted after lugging these suitcases all the way across the city.",
-    'correctAnswer': "I'm exhausted after " +
-        debugBlank +
-        " these suitcases all the way across the city.",
+    'correctAnswer':
+        "I'm exhausted after $debugBlank these suitcases all the way across the city.",
   },
   {
     'term': 'at all cost',
     'ex': "Please, save my husband at all costs-I can't live without him!",
-    'correctAnswer': "Please, save my husband " +
-        debugBlank +
-        " " +
-        debugBlank +
-        " " +
-        debugBlank +
-        "-I can't live without him!",
+    'correctAnswer':
+        "Please, save my husband $debugBlank $debugBlank $debugBlank-I can't live without him!",
   },
   {
     'term': 'plop down',
     'ex': 'He plopped himself down in the chair.',
-    'correctAnswer':
-        'He ' + debugBlank + ' himself ' + debugBlank + ' in the chair.',
+    'correctAnswer': 'He $debugBlank himself $debugBlank in the chair.',
   },
   {
     'term': 'aaaa',
@@ -241,5 +228,12 @@ var blankifyTestSet = [
     'term': 'aa bb',
     'ex': 'He plopped himself down in the chair.',
     'correctAnswer': 'He plopped himself down in the chair.',
+  },
+  {
+    'term': 'foster in',
+    'ex':
+        'The professor hoped to foster a genuine interest in his students to pursue research.',
+    'correctAnswer':
+        'The professor hoped to $debugBlank a genuine interest $debugBlank his students to pursue research.',
   },
 ];

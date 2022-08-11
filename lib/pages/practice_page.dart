@@ -6,6 +6,7 @@ import 'package:annoyer/database/training_instance.dart';
 import 'package:annoyer/database/word.dart';
 import 'package:annoyer/database/training_data.dart';
 import 'package:annoyer/i18n/strings.g.dart';
+import 'package:annoyer/log.dart';
 import 'package:annoyer/notification_center.dart';
 import 'package:annoyer/training.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,9 @@ class PracticePage extends StatelessWidget {
     required this.inst,
   })  : _loader = _load(inst),
         super(key: key) {
+    Log.info(
+        'Opened practice page: training id=${inst.trainingId}, training index=${inst.trainingIndex}');
+
     // remove instance after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TrainingInstance.delete(inst.id!);
@@ -40,6 +44,7 @@ class PracticePage extends StatelessWidget {
     DateTime now = DateTime.now();
     if (trainingData == null || trainingData.expiration.isBefore(now)) {
       //-- invalid --//
+      Log.warn('Training ${inst.trainingId} is invalid');
       return [];
     }
 
