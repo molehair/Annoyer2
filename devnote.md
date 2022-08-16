@@ -8,6 +8,8 @@
   - When editing a word, check if the word name is one of predefined words.
 
 - todo
+  - Show the correct answer within the blank in ask-word test with color
+  - blankify example when touching it in practice page
   - warning..
 w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.5.30/5fd47535cc85f9e24996f939c2de6583991481b0/kotlin-stdlib-jdk8-1.5.30.jar (version 1.5)
