@@ -9,6 +9,7 @@
 
 - todo
   - Show the correct answer within the blank in ask-word test with color
+  - prevent duplicates on suggestions in ask-word test
   - blankify example when touching it in practice page
   - warning..
 w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
