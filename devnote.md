@@ -8,6 +8,7 @@
   - When editing a word, check if the word name is one of predefined words.
 
 - todo
+  - Test scheduling after reboot. It didn't work on Monday.
   - Show the correct answer within the blank in ask-word test with color
   - prevent duplicates on suggestions in ask-word test
   - blankify example when touching it in practice page
