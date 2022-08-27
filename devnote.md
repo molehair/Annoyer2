@@ -22,6 +22,7 @@ w: Runtime JAR files in the classpath should have the same version. These files 
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-common/1.6.21/5e5b55c26dbc80372a920aef60eb774b714559b8/kotlin-stdlib-common-1.6.21.jar (version 1.6)
 w: Some runtime JAR files in the classpath have an incompatible version. Consider removing them from the classpath
 
+  - auto generation of illustrations from example sentence
   - animation
   - documentation
   - firestore if sync over web is planned
