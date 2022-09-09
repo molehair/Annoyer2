@@ -8,6 +8,8 @@
   - When editing a word, check if the word name is one of predefined words.
 
 - todo
+  - Test making practice instances for 0, 4, and 16 words respectively.
+  - Prevent tapping on the correct answer after the grading is made.
   - Check if it is failed to make a training instance for a specific set of words
     - split the entire words into 16-word files, then test one by one.
   - Test scheduling after reboot. It didn't work on Monday.
