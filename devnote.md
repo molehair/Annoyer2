@@ -8,6 +8,7 @@
   - When editing a word, check if the word name is one of predefined words.
 
 - todo
+  - Remove test notification when a test is opened NOT by tapping the notification
   - Test making practice instances for 0, 4, and 16 words respectively.
   - Prevent tapping on the correct answer after the grading is made.
   - Check if it is failed to make a training instance for a specific set of words
