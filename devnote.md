@@ -6,7 +6,8 @@
     - expected: The professor hoped to __ a genuine interest __ his students to pursue research.
     - reality: The professor hoped to __ a genuine __terest in his students to pursue research.
   - When editing a word, check if the word name is one of predefined words.
-
+  - It makes incorrect on the test to modify a word after a training instance.
+  
 - todo
   - Remove test notification when a test is opened NOT by tapping the notification
   - Test making practice instances for 0, 4, and 16 words respectively.
