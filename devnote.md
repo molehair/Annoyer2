@@ -49,13 +49,3 @@
 
 
 - done
-  - Change notification system from push to local
-  - Discarding notification when a training instance is opened
-  - Introduced file-based log
-  - Replaced time picker with the original one
-  - Word/idiom auto complete with dictionary APIs
-    - https://github.com/fluhus/wordnet-to-json
-  - Showing level for each word on dictionary page
-  - Improved blankification.
-  - More clear expression of correctness on test
-  - Better titles for practice and test
