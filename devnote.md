@@ -20,6 +20,7 @@
   - blankify example when touching it in practice page
   - removing circle in front of each selection in ask-def test
     - change colors of selections upon user's choice
+  - deal with the too late alarm problem: the first monday alarm after no alarm on Sat and Sun rings more than two hours later
   - warning..
     w: Runtime JAR files in the classpath should have the same version. These files were found in the classpath:
     /home/j/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.5.30/5fd47535cc85f9e24996f939c2de6583991481b0/kotlin-stdlib-jdk8-1.5.30.jar (version 1.5)
