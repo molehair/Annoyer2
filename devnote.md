@@ -9,6 +9,7 @@
   - It makes incorrect on the test to modify a word after a training instance.
   
 - todo
+  - when open a practice/test instance by tapping a notification, set the initial view to 'Training' on the bottom navigation
   - Remove test notification when a test is opened NOT by tapping the notification
   - Test making practice instances for 0, 4, and 16 words respectively.
   - Prevent tapping on the correct answer after the grading is made.
