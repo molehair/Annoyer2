@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.annoyer">
+    package="com.molehair.annoyer">
    <application
         android:label="Annoyer"
         android:icon="@mipmap/launcher_icon">
