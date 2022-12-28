@@ -7,6 +7,7 @@
     - reality: The professor hoped to __ a genuine __terest in his students to pursue research.
   - When editing a word, check if the word name is one of predefined words.
   - It makes incorrect on the test to modify a word after a training instance.
+  - Sometimes, a test instance is not removed after completing it.
   
 - todo
   - when open a practice/test instance by tapping a notification, set the initial view to 'Training' on the bottom navigation
