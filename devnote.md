@@ -8,6 +8,7 @@
   - When editing a word, check if the word name is one of predefined words.
   - It makes incorrect on the test to modify a word after a training instance.
   - Sometimes, a test instance is not removed after completing it.
+  - It is possible two consecutive practice notifications show up at the same time.
   
 - todo
   - when open a practice/test instance by tapping a notification, set the initial view to 'Training' on the bottom navigation
